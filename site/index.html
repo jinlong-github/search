@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b1020" />
   <meta name="description" content="Research Search：论文、专利与技术博客统一搜索与技术情报概览" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.openalex.org https://hn.algolia.com https://search.patentsview.org https://*.workers.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.crossref.org https://api.openalex.org https://hn.algolia.com https://search.patentsview.org https://*.workers.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
   <title>Research Search</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./styles.css?v=5" />
-  <link rel="stylesheet" href="./web.css?v=5" />
-  <link rel="stylesheet" href="./ux.css?v=5" />
-  <link rel="stylesheet" href="./status.css?v=5" />
+  <link rel="stylesheet" href="./styles.css?v=6" />
+  <link rel="stylesheet" href="./web.css?v=6" />
+  <link rel="stylesheet" href="./ux.css?v=6" />
+  <link rel="stylesheet" href="./status.css?v=6" />
 </head>
 <body>
   <header class="topbar">
@@ -31,7 +31,7 @@
     <section class="hero">
       <p class="eyebrow">PERSONAL TECHNOLOGY INTELLIGENCE</p>
       <h1>一次搜索，连接论文、专利、官网与技术文章</h1>
-      <p class="subtitle">论文实时查询 OpenAlex；专利支持 PatentsView；官网与全网结果通过 Cloudflare Worker + Brave Search 聚合；技术文章继续查询 Hacker News Algolia。</p>
+      <p class="subtitle">论文默认使用无需 API Key 的 Crossref；专利支持 PatentsView；官网与全网结果通过 Cloudflare Worker + Brave Search 聚合；技术文章查询 Hacker News Algolia。</p>
 
       <form id="searchForm" class="search-box">
         <label class="sr-only" for="queryInput">搜索关键词</label>
@@ -84,7 +84,7 @@
 
           <div class="source-note">
             <strong>当前数据源</strong>
-            <span>论文 · OpenAlex</span>
+            <span id="paperSourceLabel">论文 · Crossref（无需 Key）</span>
             <span>博客 · HN Algolia</span>
             <span id="patentSourceLabel">专利 · 专业库入口</span>
             <span id="webSourceLabel">Web · 外部搜索入口</span>
@@ -160,10 +160,11 @@
     <a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a>
   </footer>
 
-  <script src="./bootstrap.js?v=5" defer></script>
-  <script src="./app.js?v=5" defer></script>
-  <script src="./web.js?v=5" defer></script>
-  <script src="./ux.js?v=5" defer></script>
-  <script src="./status.js?v=5" defer></script>
+  <script src="./bootstrap.js?v=6" defer></script>
+  <script src="./app.js?v=6" defer></script>
+  <script src="./sources.js?v=6" defer></script>
+  <script src="./web.js?v=6" defer></script>
+  <script src="./ux.js?v=6" defer></script>
+  <script src="./status.js?v=6" defer></script>
 </body>
 </html>
