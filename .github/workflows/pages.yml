@@ -27,8 +27,11 @@ jobs:
       - name: Static JavaScript checks
         run: |
           node --check site/app.js
+          node --check site/sources.js
           node --check site/web.js
           node --check site/ux.js
+          node --check site/status.js
+          node --check site/bootstrap.js
 
       - name: Local browser search smoke test
         run: |
@@ -39,19 +42,20 @@ jobs:
           sleep 2
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
-          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=15000 \
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=18000 \
             --dump-dom 'http://127.0.0.1:8000/?q=machine%20learning' >/tmp/search-dom.html 2>/tmp/chrome-local.log || {
               cat /tmp/chrome-local.log
               exit 1
             }
-          PAPER_COUNT=$(grep -o 'data-key="paper:[^"]*"' /tmp/search-dom.html | wc -l | tr -d ' ')
+          PAPER_COUNT=$(grep -o 'data-key="paper:crossref:[^"]*"' /tmp/search-dom.html | wc -l | tr -d ' ')
           BLOG_COUNT=$(grep -o 'data-key="blog:[^"]*"' /tmp/search-dom.html | wc -l | tr -d ' ')
-          echo "Local real results: papers=$PAPER_COUNT blogs=$BLOG_COUNT"
-          if [ "$PAPER_COUNT" -lt 1 ]; then
-            echo 'No real OpenAlex paper results rendered locally.'
+          echo "Local real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT"
+          if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ]; then
+            echo 'Missing real Crossref or HN results locally.'
             cat /tmp/chrome-local.log
             grep -o '<div id="errorBox"[^>]*>[^<]*' /tmp/search-dom.html || true
             grep -o '<p id="statusLine"[^>]*>[^<]*' /tmp/search-dom.html || true
+            grep -n -E 'Crossref|HN|data-key=' /tmp/search-dom.html | head -80 || true
             exit 1
           fi
 
@@ -87,37 +91,38 @@ jobs:
             sleep 5
           done
           grep -q 'Research Search' /tmp/prod-index.html
+          grep -q 'sources.js?v=6' /tmp/prod-index.html
 
           PROFILE=/tmp/research-search-prod-profile
           rm -rf "$PROFILE"
 
           "$CHROME" --headless --no-sandbox --disable-gpu \
-            --user-data-dir="$PROFILE" --virtual-time-budget=8000 \
+            --user-data-dir="$PROFILE" --virtual-time-budget=6000 \
             --dump-dom "${PAGE_URL}?warm=${REVISION}" >/tmp/prod-warm.html 2>/tmp/chrome-prod-warm.log || {
               cat /tmp/chrome-prod-warm.log
               exit 1
             }
 
           "$CHROME" --headless --no-sandbox --disable-gpu \
-            --user-data-dir="$PROFILE" --virtual-time-budget=18000 \
+            --user-data-dir="$PROFILE" --virtual-time-budget=20000 \
             --dump-dom "${PAGE_URL}?q=machine%20learning&prod=${REVISION}" >/tmp/prod-search.html 2>/tmp/chrome-prod-search.log || {
               cat /tmp/chrome-prod-search.log
               exit 1
             }
 
-          PAPER_COUNT=$(grep -o 'data-key="paper:[^"]*"' /tmp/prod-search.html | wc -l | tr -d ' ')
+          PAPER_COUNT=$(grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-search.html | wc -l | tr -d ' ')
           BLOG_COUNT=$(grep -o 'data-key="blog:[^"]*"' /tmp/prod-search.html | wc -l | tr -d ' ')
-          echo "Production real results: papers=$PAPER_COUNT blogs=$BLOG_COUNT"
+          echo "Production real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT"
           grep -o '<p id="statusLine"[^>]*>[^<]*' /tmp/prod-search.html || true
           grep -o '<div id="errorBox"[^>]*>[^<]*' /tmp/prod-search.html || true
 
-          if [ "$PAPER_COUNT" -lt 1 ]; then
-            echo 'No real OpenAlex paper results rendered on production.'
+          if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ]; then
+            echo 'Missing real Crossref or HN results on production.'
             echo '--- Chrome production log ---'
             cat /tmp/chrome-prod-search.log
             echo '--- Relevant DOM ---'
-            grep -n -E 'errorBox|statusLine|OpenAlex|没有找到论文|data-key=' /tmp/prod-search.html | head -80 || true
+            grep -n -E 'errorBox|statusLine|Crossref|HN|没有找到论文|data-key=' /tmp/prod-search.html | head -100 || true
             exit 1
           fi
 
-          echo 'Production OpenAlex results rendered successfully.'
+          echo 'Production Crossref and HN results rendered successfully.'
