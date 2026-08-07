@@ -1,5 +1,5 @@
 (() => {
-  const BUILD = '2026.08.08-02';
+  const BUILD = '2026.08.08-03';
 
   function ensureHealthBox() {
     let box = document.querySelector('#sourceHealth');
@@ -11,6 +11,13 @@
     box.className = 'source-health';
     errorBox.parentNode.insertBefore(box, errorBox);
     return box;
+  }
+
+  function patchPaperIndexLabels() {
+    if (!String(state.paperBackend || '').startsWith('crossref')) return;
+    document.querySelectorAll('.ux-paper .ux-index-source strong').forEach(el => {
+      el.textContent = 'Crossref';
+    });
   }
 
   function chip(label, stateName, text) {
@@ -29,7 +36,7 @@
     const blogCount = state.blogs?.length || 0;
     const patentLive = state.patentMode === 'live';
     const webLive = state.webMode === 'live';
-    const paperLabel = state.paperBackend === 'crossref' ? '论文 · Crossref' : '论文';
+    const paperLabel = String(state.paperBackend || '').startsWith('crossref') ? '论文 · Crossref' : '论文';
 
     const paperFailed = errorText.includes('Crossref') || errorText.includes('论文数据源');
     const blogFailed = errorText.includes('技术文章') || errorText.includes('Algolia');
@@ -121,6 +128,7 @@
   const previousPerformSearch = performSearch;
   performSearch = async function performSearchWithHealth(rawQuery) {
     await previousPerformSearch(rawQuery);
+    patchPaperIndexLabels();
     renderHealth();
   };
 
@@ -129,5 +137,8 @@
     if (e.target.closest('#resetSiteCache')) resetSiteCache();
   });
 
-  setTimeout(() => renderHealth(), 0);
+  setTimeout(() => {
+    patchPaperIndexLabels();
+    renderHealth();
+  }, 0);
 })();
