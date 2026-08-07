@@ -54,7 +54,8 @@
       oa: false,
       venue,
       abstract: truncate(plainText(item.abstract || ''), 520),
-      doi
+      doi,
+      indexSource: 'Crossref'
     };
   }
 
@@ -94,4 +95,11 @@
     const label = document.querySelector('#paperSourceLabel');
     if (label) label.textContent = state.paperBackend === 'crossref-error' ? '论文 · Crossref（异常）' : '论文 · Crossref（无需 Key）';
   };
+
+  // app.js may have already started a URL-based query before this adapter loaded.
+  // Re-run after the current script turn; by then web/UX/status wrappers are installed,
+  // so the visible results are guaranteed to use the current source stack.
+  if (state.query) {
+    setTimeout(() => performSearch(state.query), 0);
+  }
 })();
