@@ -47,15 +47,18 @@ jobs:
               cat /tmp/chrome-local.log
               exit 1
             }
-          PAPER_COUNT=$(grep -o 'data-key="paper:crossref:[^"]*"' /tmp/search-dom.html | wc -l | tr -d ' ')
-          BLOG_COUNT=$(grep -o 'data-key="blog:[^"]*"' /tmp/search-dom.html | wc -l | tr -d ' ')
+          PAPER_COUNT=$(( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' ))
+          BLOG_COUNT=$(( (grep -o 'data-key="blog:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' ))
           echo "Local real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT"
           if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ]; then
             echo 'Missing real Crossref or HN results locally.'
+            echo '--- Chrome log ---'
             cat /tmp/chrome-local.log
+            echo '--- Error/status ---'
             grep -o '<div id="errorBox"[^>]*>[^<]*' /tmp/search-dom.html || true
             grep -o '<p id="statusLine"[^>]*>[^<]*' /tmp/search-dom.html || true
-            grep -n -E 'Crossref|HN|data-key=' /tmp/search-dom.html | head -80 || true
+            echo '--- Relevant DOM ---'
+            grep -n -E 'Crossref|HN|data-key=|sources.js|errorBox|statusLine' /tmp/search-dom.html | head -120 || true
             exit 1
           fi
 
@@ -110,8 +113,8 @@ jobs:
               exit 1
             }
 
-          PAPER_COUNT=$(grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-search.html | wc -l | tr -d ' ')
-          BLOG_COUNT=$(grep -o 'data-key="blog:[^"]*"' /tmp/prod-search.html | wc -l | tr -d ' ')
+          PAPER_COUNT=$(( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' ))
+          BLOG_COUNT=$(( (grep -o 'data-key="blog:[^"]*"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' ))
           echo "Production real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT"
           grep -o '<p id="statusLine"[^>]*>[^<]*' /tmp/prod-search.html || true
           grep -o '<div id="errorBox"[^>]*>[^<]*' /tmp/prod-search.html || true
@@ -121,7 +124,7 @@ jobs:
             echo '--- Chrome production log ---'
             cat /tmp/chrome-prod-search.log
             echo '--- Relevant DOM ---'
-            grep -n -E 'errorBox|statusLine|Crossref|HN|没有找到论文|data-key=' /tmp/prod-search.html | head -100 || true
+            grep -n -E 'errorBox|statusLine|Crossref|HN|没有找到论文|data-key=' /tmp/prod-search.html | head -120 || true
             exit 1
           fi
 
