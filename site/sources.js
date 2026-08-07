@@ -2,6 +2,30 @@
   const CROSSREF_API = 'https://api.crossref.org/works';
 
   state.paperBackend = 'crossref';
+  state.__paperWriteSource = '';
+
+  // Guard paper state so any OpenAlex request that started before this adapter loaded
+  // cannot overwrite newer Crossref results when it finishes later.
+  let paperStore = state.papers;
+  let paperTotalStore = state.paperTotal;
+  Object.defineProperty(state, 'papers', {
+    configurable: true,
+    enumerable: true,
+    get() { return paperStore; },
+    set(value) {
+      if (state.paperBackend === 'crossref' && state.__paperWriteSource !== 'crossref') return;
+      paperStore = value;
+    }
+  });
+  Object.defineProperty(state, 'paperTotal', {
+    configurable: true,
+    enumerable: true,
+    get() { return paperTotalStore; },
+    set(value) {
+      if (state.paperBackend === 'crossref' && state.__paperWriteSource !== 'crossref') return;
+      paperTotalStore = value;
+    }
+  });
 
   function crossrefDate(item) {
     const candidates = [item.published, item['published-print'], item['published-online'], item.issued, item.created];
@@ -59,6 +83,16 @@
     };
   }
 
+  function writePaperState(items, total) {
+    state.__paperWriteSource = 'crossref';
+    try {
+      state.paperTotal = total;
+      state.papers = items;
+    } finally {
+      state.__paperWriteSource = '';
+    }
+  }
+
   async function searchCrossref(query) {
     const url = new URL(CROSSREF_API);
     url.searchParams.set('query.bibliographic', query);
@@ -71,9 +105,8 @@
     let items = (data.message?.items || []).map(normalizeCrossref).filter(item => item.url !== '#');
     if (els.sort.value === 'cited') items.sort((a,b) => b.citations - a.citations);
     if (els.sort.value === 'newest') items.sort((a,b) => String(b.date).localeCompare(String(a.date)));
-    state.paperTotal = Number(data.message?.['total-results'] || items.length);
-    state.papers = items.slice(0,20);
     state.paperBackend = 'crossref';
+    writePaperState(items.slice(0,20), Number(data.message?.['total-results'] || items.length));
   }
 
   // OpenAlex requires an API key for production use as of 2026-02-13.
@@ -82,8 +115,8 @@
     try {
       await searchCrossref(query);
     } catch (error) {
-      state.papers = [];
-      state.paperTotal = 0;
+      state.paperBackend = 'crossref';
+      writePaperState([], 0);
       state.paperBackend = 'crossref-error';
       throw new Error(error?.message || '论文数据源请求失败');
     }
@@ -97,9 +130,6 @@
   };
 
   // app.js may have already started a URL-based query before this adapter loaded.
-  // Re-run after the current script turn; by then web/UX/status wrappers are installed,
-  // so the visible results are guaranteed to use the current source stack.
-  if (state.query) {
-    setTimeout(() => performSearch(state.query), 0);
-  }
+  // Re-run after all deferred scripts install their wrappers.
+  if (state.query) setTimeout(() => performSearch(state.query), 0);
 })();
