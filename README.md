@@ -1,51 +1,77 @@
 # Research Search
 
-[![Deploy GitHub Pages](https://github.com/jinlong-github/search/actions/workflows/pages.yml/badge.svg)](https://github.com/jinlong-github/search/actions/workflows/pages.yml)
+一个部署在 GitHub Pages 上的个人科研 / 技术情报搜索站，统一查看：
 
-一个可直接部署到 GitHub Pages 的个人科研/技术情报搜索入口，面向：
-
-- 论文：OpenAlex 实时检索
-- 技术博客/文章：Hacker News Algolia 实时检索
-- 专利：Google Patents / Espacenet 检索入口（GitHub Pages 无服务端，后续可接专利 API 代理）
+- **论文**：OpenAlex 实时搜索
+- **专利**：可选 PatentsView 实时搜索；未配置时保留 Google Patents / Espacenet 深搜入口
+- **技术博客 / 文章**：Hacker News Algolia 实时发现
+- **技术情报概览**：在浏览器本地对论文、专利、技术文章做跨来源主题与信号聚合
 
 ## 在线使用
 
-项目内置 GitHub Pages Actions 工作流。首次部署后，在仓库 **Settings → Pages** 可看到站点地址，通常为：
+https://jinlong-github.github.io/search/
 
-`https://jinlong-github.github.io/search/`
+## 当前能力
 
-## 功能
-
-- 统一搜索界面
-- 论文 / 专利 / 博客分类
+- 论文 / 专利 / 博客统一结果页
 - 论文引用数、作者、年份、开放获取状态
-- 技术文章来源与发布时间
-- 专利搜索直达 Google Patents / Espacenet
-- 收藏与搜索历史（仅保存在当前浏览器 localStorage）
-- JSON 导出
-- 响应式布局，可作为 PWA 添加到桌面/手机主屏幕
-- 无需本地运行、无需服务器
+- PatentsView 专利卡片：专利号、申请人/受让人、授权日期、摘要、参考文献数
+- Google Patents / Espacenet / USPTO 深度跳转
+- 跨来源技术情报概览：高频主题、主要论文来源、主要专利申请人、最新信号日期
+- 相关度 / 影响力 / 最新排序
+- 起始年份筛选、开放获取筛选
+- 收藏、搜索历史、JSON 导出
+- 响应式布局 + PWA
+- GitHub Actions 自动部署 Pages
+
+## 专利实时搜索
+
+PatentsView PatentSearch API 目前要求请求头：
+
+`X-Api-Key: YOUR_KEY`
+
+在网页右上角 **设置** 中填入 Key 即可启用实时专利聚合。
+
+Key 的处理方式：
+
+- 默认只写入当前浏览器 `sessionStorage`
+- 勾选“记住在这台设备上”时写入当前浏览器 `localStorage`
+- Key 不会提交到 GitHub 仓库
+- 可随时在设置中清除
+
+如果没有 PatentsView Key，网站仍然可用，并提供 Google Patents 与 Espacenet 的同查询入口。
+
+> 注意：PatentsView 官方当前可能暂停新 API Key 发放；已有 Key 的用户可继续配置。若浏览器或服务端的 CORS / API 策略变化导致直连失败，页面会保留专业专利库入口。后续版本可将专利调用迁移到 Cloudflare Worker 等服务端代理。
 
 ## 数据源
 
-- [OpenAlex](https://openalex.org/)：论文及学术元数据
-- [Hacker News Algolia Search](https://hn.algolia.com/api)：技术文章发现
-- [Google Patents](https://patents.google.com/)：专利检索跳转
-- [Espacenet](https://worldwide.espacenet.com/)：专利检索跳转
+- [OpenAlex](https://openalex.org/) — 学术论文与引用元数据
+- [PatentsView PatentSearch](https://search.patentsview.org/) — 美国专利结构化数据
+- [Hacker News Algolia](https://hn.algolia.com/api) — 技术文章发现
+- [Google Patents](https://patents.google.com/) — 全球专利深搜
+- [Espacenet](https://worldwide.espacenet.com/) — EPO 专利检索
+- [USPTO Patent Public Search](https://ppubs.uspto.gov/pubwebapp/) — 美国专利官方检索
 
-## GitHub Pages 的边界
+## 架构边界
 
-GitHub Pages 只能托管静态网页，不能安全保存第三方 API Secret，也不能运行 Python/FastAPI/OpenSearch。因此当前版本优先采用可在浏览器直接调用的公开 API；需要鉴权的专利全文 API、AI reranker、语义向量检索等应通过独立后端/Cloudflare Worker 扩展。
+GitHub Pages 是静态托管，不能安全保存共享的服务端 Secret，也不能运行 FastAPI / OpenSearch。
+
+当前架构采用“浏览器直接访问公开 API + 用户自己的可选 API Key”。下一阶段建议增加独立 serverless backend（例如 Cloudflare Worker），用于：
+
+1. 统一代理专利 API，避免浏览器 CORS 与密钥暴露问题
+2. 查询扩展与跨语言检索
+3. 语义 rerank
+4. AI Overview（带来源引用）
+5. 论文 → 专利 → 技术博客的跨来源关联
+6. 专利族、CPC/IPC、法律状态等更完整的专利情报
 
 ## 本地预览
-
-直接打开 `site/index.html` 即可；部分浏览器会限制 `file://` 下的 Service Worker，但搜索功能不受影响。也可以运行任意静态服务器：
 
 ```bash
 python -m http.server 8000 -d site
 ```
 
-然后访问 `http://localhost:8000`。
+然后打开 `http://localhost:8000`。
 
 ## License
 

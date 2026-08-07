@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b1020" />
-  <meta name="description" content="Research Search：论文、专利与技术博客统一搜索" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.openalex.org https://hn.algolia.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
+  <meta name="description" content="Research Search：论文、专利与技术博客统一搜索与技术情报概览" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.openalex.org https://hn.algolia.com https://search.patentsview.org; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
   <title>Research Search</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
@@ -18,6 +18,7 @@
       <span>Research Search</span>
     </a>
     <div class="top-actions">
+      <button id="settingsBtn" class="ghost-btn" type="button">设置</button>
       <button id="historyBtn" class="ghost-btn" type="button">历史</button>
       <button id="exportBtn" class="ghost-btn" type="button">导出</button>
     </div>
@@ -27,7 +28,7 @@
     <section class="hero">
       <p class="eyebrow">PERSONAL TECHNOLOGY INTELLIGENCE</p>
       <h1>一次搜索，连接论文、专利与技术文章</h1>
-      <p class="subtitle">论文实时查询 OpenAlex；技术文章查询 Hacker News Algolia；专利提供 Google Patents 与 Espacenet 深度检索入口。</p>
+      <p class="subtitle">论文实时查询 OpenAlex；技术文章查询 Hacker News Algolia；专利支持 PatentsView 实时聚合，并保留 Google Patents / Espacenet 深度检索。</p>
 
       <form id="searchForm" class="search-box">
         <label class="sr-only" for="queryInput">搜索关键词</label>
@@ -48,7 +49,7 @@
       <nav class="tabs" aria-label="搜索类型">
         <button class="tab active" data-tab="all" type="button">全部</button>
         <button class="tab" data-tab="papers" type="button">论文 <span id="paperCount" class="count"></span></button>
-        <button class="tab" data-tab="patents" type="button">专利</button>
+        <button class="tab" data-tab="patents" type="button">专利 <span id="patentCount" class="count"></span></button>
         <button class="tab" data-tab="blogs" type="button">博客 <span id="blogCount" class="count"></span></button>
         <button class="tab" data-tab="saved" type="button">收藏 <span id="savedCount" class="count"></span></button>
       </nav>
@@ -59,7 +60,7 @@
             <label for="sortSelect">排序</label>
             <select id="sortSelect">
               <option value="relevance">相关度</option>
-              <option value="cited">引用数</option>
+              <option value="cited">影响力</option>
               <option value="newest">最新</option>
             </select>
           </div>
@@ -77,7 +78,7 @@
             <strong>当前数据源</strong>
             <span>论文 · OpenAlex</span>
             <span>博客 · HN Algolia</span>
-            <span>专利 · 外部专业库</span>
+            <span id="patentSourceLabel">专利 · 专业库入口</span>
           </div>
         </aside>
 
@@ -91,6 +92,7 @@
           </div>
 
           <div id="errorBox" class="error-box hidden"></div>
+          <div id="overviewBox" class="overview-card hidden"></div>
           <div id="loading" class="loading hidden">
             <span></span><span></span><span></span>
           </div>
@@ -99,6 +101,30 @@
       </div>
     </section>
   </main>
+
+  <dialog id="settingsDialog">
+    <div class="dialog-head">
+      <div>
+        <p class="dialog-kicker">DATA SOURCE</p>
+        <h2>搜索设置</h2>
+      </div>
+      <button id="closeSettings" class="icon-btn" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="settings-section">
+      <label for="patentApiKey">PatentsView API Key</label>
+      <input id="patentApiKey" class="settings-input" type="password" autocomplete="off" placeholder="输入 X-Api-Key（可选）" />
+      <p>配置后，专利会直接显示在本站搜索结果中。Key 只在你的浏览器里使用，不会提交到本仓库。PatentsView 当前要求 API Key。</p>
+      <label class="check-row settings-check">
+        <input id="rememberPatentKey" type="checkbox" />
+        <span>记住在这台设备上</span>
+      </label>
+      <div id="patentKeyStatus" class="key-status"></div>
+    </div>
+    <div class="dialog-actions">
+      <button id="clearPatentKey" class="danger-btn" type="button">清除 Key</button>
+      <button id="saveSettings" class="secondary-btn fit" type="button">保存设置</button>
+    </div>
+  </dialog>
 
   <dialog id="historyDialog">
     <div class="dialog-head">
@@ -110,7 +136,7 @@
   </dialog>
 
   <footer>
-    <span>Research Search · 静态 GitHub Pages 版</span>
+    <span>Research Search · GitHub Pages</span>
     <a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a>
   </footer>
 
