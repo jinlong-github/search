@@ -1,5 +1,7 @@
 # Research Search
 
+[![Deploy GitHub Pages](https://github.com/jinlong-github/search/actions/workflows/pages.yml/badge.svg)](https://github.com/jinlong-github/search/actions/workflows/pages.yml)
+
 一个可直接部署到 GitHub Pages 的个人科研/技术情报搜索入口，面向：
 
 - 论文：OpenAlex 实时检索
