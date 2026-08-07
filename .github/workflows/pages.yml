@@ -32,21 +32,26 @@ jobs:
 
       - name: Local browser search smoke test
         run: |
+          set -euo pipefail
           python3 -m http.server 8000 -d site >/tmp/research-search-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID || true' EXIT
           sleep 2
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
-          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=12000 \
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=15000 \
             --dump-dom 'http://127.0.0.1:8000/?q=machine%20learning' >/tmp/search-dom.html 2>/tmp/chrome-local.log || {
               cat /tmp/chrome-local.log
               exit 1
             }
-          if ! grep -Eq 'ux-result|result-card' /tmp/search-dom.html; then
-            echo 'No local search result cards rendered.'
+          PAPER_COUNT=$(grep -o 'data-key="paper:[^"]*"' /tmp/search-dom.html | wc -l | tr -d ' ')
+          BLOG_COUNT=$(grep -o 'data-key="blog:[^"]*"' /tmp/search-dom.html | wc -l | tr -d ' ')
+          echo "Local real results: papers=$PAPER_COUNT blogs=$BLOG_COUNT"
+          if [ "$PAPER_COUNT" -lt 1 ]; then
+            echo 'No real OpenAlex paper results rendered locally.'
             cat /tmp/chrome-local.log
-            sed -n '1,220p' /tmp/search-dom.html
+            grep -o '<div id="errorBox"[^>]*>[^<]*' /tmp/search-dom.html || true
+            grep -o '<p id="statusLine"[^>]*>[^<]*' /tmp/search-dom.html || true
             exit 1
           fi
 
@@ -86,7 +91,6 @@ jobs:
           PROFILE=/tmp/research-search-prod-profile
           rm -rf "$PROFILE"
 
-          # First visit installs/activates the production service worker.
           "$CHROME" --headless --no-sandbox --disable-gpu \
             --user-data-dir="$PROFILE" --virtual-time-budget=8000 \
             --dump-dom "${PAGE_URL}?warm=${REVISION}" >/tmp/prod-warm.html 2>/tmp/chrome-prod-warm.log || {
@@ -94,21 +98,26 @@ jobs:
               exit 1
             }
 
-          # Second visit uses the same profile, so it exercises the deployed PWA/cache path too.
           "$CHROME" --headless --no-sandbox --disable-gpu \
-            --user-data-dir="$PROFILE" --virtual-time-budget=15000 \
+            --user-data-dir="$PROFILE" --virtual-time-budget=18000 \
             --dump-dom "${PAGE_URL}?q=machine%20learning&prod=${REVISION}" >/tmp/prod-search.html 2>/tmp/chrome-prod-search.log || {
               cat /tmp/chrome-prod-search.log
               exit 1
             }
 
-          if ! grep -Eq 'ux-result|result-card' /tmp/prod-search.html; then
-            echo 'No production search result cards rendered.'
+          PAPER_COUNT=$(grep -o 'data-key="paper:[^"]*"' /tmp/prod-search.html | wc -l | tr -d ' ')
+          BLOG_COUNT=$(grep -o 'data-key="blog:[^"]*"' /tmp/prod-search.html | wc -l | tr -d ' ')
+          echo "Production real results: papers=$PAPER_COUNT blogs=$BLOG_COUNT"
+          grep -o '<p id="statusLine"[^>]*>[^<]*' /tmp/prod-search.html || true
+          grep -o '<div id="errorBox"[^>]*>[^<]*' /tmp/prod-search.html || true
+
+          if [ "$PAPER_COUNT" -lt 1 ]; then
+            echo 'No real OpenAlex paper results rendered on production.'
             echo '--- Chrome production log ---'
             cat /tmp/chrome-prod-search.log
-            echo '--- Production DOM excerpt ---'
-            sed -n '1,280p' /tmp/prod-search.html
+            echo '--- Relevant DOM ---'
+            grep -n -E 'errorBox|statusLine|OpenAlex|没有找到论文|data-key=' /tmp/prod-search.html | head -80 || true
             exit 1
           fi
 
-          echo 'Production search rendered result cards successfully.'
+          echo 'Production OpenAlex results rendered successfully.'
