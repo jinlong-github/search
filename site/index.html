@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1020" />
+  <meta name="description" content="Research Search：论文、专利与技术博客统一搜索" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.openalex.org https://hn.algolia.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
+  <title>Research Search</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Research Search 首页">
+      <span class="brand-mark">R</span>
+      <span>Research Search</span>
+    </a>
+    <div class="top-actions">
+      <button id="historyBtn" class="ghost-btn" type="button">历史</button>
+      <button id="exportBtn" class="ghost-btn" type="button">导出</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">PERSONAL TECHNOLOGY INTELLIGENCE</p>
+      <h1>一次搜索，连接论文、专利与技术文章</h1>
+      <p class="subtitle">论文实时查询 OpenAlex；技术文章查询 Hacker News Algolia；专利提供 Google Patents 与 Espacenet 深度检索入口。</p>
+
+      <form id="searchForm" class="search-box">
+        <label class="sr-only" for="queryInput">搜索关键词</label>
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input id="queryInput" name="q" type="search" autocomplete="off" placeholder="例如：2D engineering drawing to 3D CAD reconstruction" />
+        <button class="search-btn" type="submit">搜索</button>
+      </form>
+
+      <div class="quick-queries" aria-label="快速搜索">
+        <button type="button" data-query="agentic CAD">agentic CAD</button>
+        <button type="button" data-query="engineering drawing 3D reconstruction">2D → 3D CAD</button>
+        <button type="button" data-query="multimodal foundation model robotics">robot foundation model</button>
+        <button type="button" data-query="computer aided tolerancing PMI">PMI / tolerancing</button>
+      </div>
+    </section>
+
+    <section id="searchWorkspace" class="workspace hidden" aria-live="polite">
+      <nav class="tabs" aria-label="搜索类型">
+        <button class="tab active" data-tab="all" type="button">全部</button>
+        <button class="tab" data-tab="papers" type="button">论文 <span id="paperCount" class="count"></span></button>
+        <button class="tab" data-tab="patents" type="button">专利</button>
+        <button class="tab" data-tab="blogs" type="button">博客 <span id="blogCount" class="count"></span></button>
+        <button class="tab" data-tab="saved" type="button">收藏 <span id="savedCount" class="count"></span></button>
+      </nav>
+
+      <div class="content-grid">
+        <aside class="filters">
+          <div class="filter-block">
+            <label for="sortSelect">排序</label>
+            <select id="sortSelect">
+              <option value="relevance">相关度</option>
+              <option value="cited">引用数</option>
+              <option value="newest">最新</option>
+            </select>
+          </div>
+          <div class="filter-block">
+            <label for="fromYear">起始年份</label>
+            <input id="fromYear" type="number" min="1900" max="2100" placeholder="例如 2023" />
+          </div>
+          <label class="check-row">
+            <input id="oaOnly" type="checkbox" />
+            <span>仅开放获取论文</span>
+          </label>
+          <button id="applyFilters" class="secondary-btn" type="button">应用筛选</button>
+
+          <div class="source-note">
+            <strong>当前数据源</strong>
+            <span>论文 · OpenAlex</span>
+            <span>博客 · HN Algolia</span>
+            <span>专利 · 外部专业库</span>
+          </div>
+        </aside>
+
+        <section class="results-pane">
+          <div class="results-head">
+            <div>
+              <p id="statusLine" class="status-line">准备搜索</p>
+              <h2 id="resultsTitle">搜索结果</h2>
+            </div>
+            <button id="copyQueryBtn" class="ghost-btn compact" type="button">复制查询</button>
+          </div>
+
+          <div id="errorBox" class="error-box hidden"></div>
+          <div id="loading" class="loading hidden">
+            <span></span><span></span><span></span>
+          </div>
+          <div id="results" class="results"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="historyDialog">
+    <div class="dialog-head">
+      <h2>搜索历史</h2>
+      <button id="closeHistory" class="icon-btn" type="button" aria-label="关闭">×</button>
+    </div>
+    <div id="historyList" class="history-list"></div>
+    <button id="clearHistory" class="danger-btn" type="button">清空历史</button>
+  </dialog>
+
+  <footer>
+    <span>Research Search · 静态 GitHub Pages 版</span>
+    <a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a>
+  </footer>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
