@@ -94,7 +94,7 @@ jobs:
             sleep 5
           done
           grep -q 'Research Search' /tmp/prod-index.html
-          grep -q 'sources.js?v=6' /tmp/prod-index.html
+          grep -q 'sources.js?v=7' /tmp/prod-index.html
 
           PROFILE=/tmp/research-search-prod-profile
           rm -rf "$PROFILE"
