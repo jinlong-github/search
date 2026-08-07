@@ -47,8 +47,8 @@ jobs:
               cat /tmp/chrome-local.log
               exit 1
             }
-          PAPER_COUNT=$(( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' ))
-          BLOG_COUNT=$(( (grep -o 'data-key="blog:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' ))
+          PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
+          BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
           echo "Local real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT"
           if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ]; then
             echo 'Missing real Crossref or HN results locally.'
@@ -113,8 +113,8 @@ jobs:
               exit 1
             }
 
-          PAPER_COUNT=$(( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' ))
-          BLOG_COUNT=$(( (grep -o 'data-key="blog:[^"]*"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' ))
+          PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' )
+          BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' )
           echo "Production real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT"
           grep -o '<p id="statusLine"[^>]*>[^<]*' /tmp/prod-search.html || true
           grep -o '<div id="errorBox"[^>]*>[^<]*' /tmp/prod-search.html || true
