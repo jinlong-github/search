@@ -24,6 +24,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Static JavaScript checks
+        run: |
+          node --check site/app.js
+          node --check site/web.js
+          node --check site/ux.js
+
+      - name: Browser search smoke test
+        run: |
+          python3 -m http.server 8000 -d site >/tmp/research-search-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          sleep 2
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=12000 \
+            --dump-dom 'http://127.0.0.1:8000/?q=machine%20learning' >/tmp/search-dom.html 2>/tmp/chrome.log || {
+              cat /tmp/chrome.log
+              exit 1
+            }
+          if ! grep -Eq 'ux-result|result-card' /tmp/search-dom.html; then
+            echo 'No search result cards rendered.'
+            echo '--- Chrome log ---'
+            cat /tmp/chrome.log
+            echo '--- DOM excerpt ---'
+            sed -n '1,220p' /tmp/search-dom.html
+            exit 1
+          fi
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
