@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b1020" />
   <meta name="description" content="Research Search：论文、专利与技术博客统一搜索与技术情报概览" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.openalex.org https://hn.algolia.com https://search.patentsview.org; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.openalex.org https://hn.algolia.com https://search.patentsview.org https://*.workers.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
   <title>Research Search</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./web.css" />
 </head>
 <body>
   <header class="topbar">
@@ -27,8 +28,8 @@
   <main class="shell">
     <section class="hero">
       <p class="eyebrow">PERSONAL TECHNOLOGY INTELLIGENCE</p>
-      <h1>一次搜索，连接论文、专利与技术文章</h1>
-      <p class="subtitle">论文实时查询 OpenAlex；技术文章查询 Hacker News Algolia；专利支持 PatentsView 实时聚合，并保留 Google Patents / Espacenet 深度检索。</p>
+      <h1>一次搜索，连接论文、专利、官网与技术文章</h1>
+      <p class="subtitle">论文实时查询 OpenAlex；专利支持 PatentsView；官网与全网结果通过 Cloudflare Worker + Brave Search 聚合；技术文章继续查询 Hacker News Algolia。</p>
 
       <form id="searchForm" class="search-box">
         <label class="sr-only" for="queryInput">搜索关键词</label>
@@ -51,6 +52,7 @@
         <button class="tab" data-tab="papers" type="button">论文 <span id="paperCount" class="count"></span></button>
         <button class="tab" data-tab="patents" type="button">专利 <span id="patentCount" class="count"></span></button>
         <button class="tab" data-tab="blogs" type="button">博客 <span id="blogCount" class="count"></span></button>
+        <button class="tab" data-tab="web" type="button">官网 / Web <span id="webCount" class="count"></span></button>
         <button class="tab" data-tab="saved" type="button">收藏 <span id="savedCount" class="count"></span></button>
       </nav>
 
@@ -72,6 +74,10 @@
             <input id="oaOnly" type="checkbox" />
             <span>仅开放获取论文</span>
           </label>
+          <label class="check-row">
+            <input id="officialOnly" type="checkbox" />
+            <span>Web 仅显示官网</span>
+          </label>
           <button id="applyFilters" class="secondary-btn" type="button">应用筛选</button>
 
           <div class="source-note">
@@ -79,6 +85,7 @@
             <span>论文 · OpenAlex</span>
             <span>博客 · HN Algolia</span>
             <span id="patentSourceLabel">专利 · 专业库入口</span>
+            <span id="webSourceLabel">Web · 外部搜索入口</span>
           </div>
         </aside>
 
@@ -110,6 +117,17 @@
       </div>
       <button id="closeSettings" class="icon-btn" type="button" aria-label="关闭">×</button>
     </div>
+    <div class="settings-section web-settings-section">
+      <label for="workerEndpoint">Cloudflare Worker 地址</label>
+      <input id="workerEndpoint" class="settings-input" type="url" autocomplete="off" placeholder="https://research-search-api.xxx.workers.dev" />
+      <p>配置后，官网 / Web 结果会直接显示在本站；若 Worker 同时配置 PatentsView Key，专利也会优先走后端代理。</p>
+      <div class="settings-inline-actions">
+        <button id="testWorker" class="ghost-btn compact" type="button">测试连接</button>
+        <button id="clearWorker" class="ghost-btn compact" type="button">清除 Worker</button>
+      </div>
+      <div id="workerStatus" class="key-status"></div>
+    </div>
+
     <div class="settings-section">
       <label for="patentApiKey">PatentsView API Key</label>
       <input id="patentApiKey" class="settings-input" type="password" autocomplete="off" placeholder="输入 X-Api-Key（可选）" />
@@ -141,5 +159,6 @@
   </footer>
 
   <script src="./app.js" defer></script>
+  <script src="./web.js" defer></script>
 </body>
 </html>
