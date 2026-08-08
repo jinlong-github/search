@@ -32,9 +32,9 @@ jobs:
           node --check site/summaries.js
           node --check site/status.js
           node --check site/ui.js
-          node --check site/research-ui.js
+          node --check site/research-workspace.js
           grep -q 'research-v13.css?v=13' site/index.html
-          grep -q 'research-ui.js?v=13' site/index.html
+          grep -q 'research-workspace.js?v=13' site/index.html
 
       - name: Browser research workflow smoke test
         shell: bash
@@ -53,10 +53,11 @@ jobs:
           PREVIEW_COUNT=$( (grep -o 'class="research-preview-btn"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
           EXPECTED=$((PAPER_COUNT + BLOG_COUNT))
           echo "papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT preview_buttons=$PREVIEW_COUNT"
-          test "$PAPER_COUNT" -ge 1
-          test "$BLOG_COUNT" -ge 1
-          test "$SUMMARY_COUNT" -ge "$EXPECTED"
-          test "$PREVIEW_COUNT" -ge "$EXPECTED"
+          if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ] || [ "$SUMMARY_COUNT" -lt "$EXPECTED" ] || [ "$PREVIEW_COUNT" -lt "$EXPECTED" ]; then
+            cat /tmp/chrome.log || true
+            grep -n -E 'research-controlbar|research-preview-btn|researchDetailPane|ux-result|中文摘要|errorBox|statusLine' /tmp/search-dom.html | head -180 || true
+            exit 1
+          fi
           grep -q 'class="research-controlbar"' /tmp/search-dom.html
           grep -q 'id="researchDetailPane"' /tmp/search-dom.html
           grep -q 'class="research-filter-toggle"' /tmp/search-dom.html
