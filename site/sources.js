@@ -1,5 +1,7 @@
 (() => {
   const CROSSREF_API = 'https://api.crossref.org/works';
+  const LOW_VALUE_TITLE = /^(index|subject index|author index|contents?|table of contents|front matter|back matter|preface|foreword|editorial|introduction|conclusion|references|bibliography)$/i;
+  const PREFERRED_TYPES = new Set(['journal-article','proceedings-article','posted-content','book-chapter','report','dissertation']);
 
   state.paperBackend = 'crossref';
   state.__paperWriteSource = '';
@@ -55,16 +57,33 @@
       .trim();
   }
 
+  function queryTokens(query='') {
+    return [...new Set(String(query).toLowerCase().match(/[a-z0-9][a-z0-9+.#-]{1,}|[\u3400-\u9fff]{2,}/g) || [])]
+      .filter(x => !['the','and','for','with','from','into','using','based'].includes(x));
+  }
+
+  function relevanceScore(item, query) {
+    const title = String(item.title || '').toLowerCase();
+    const abstract = String(item.abstract || '').toLowerCase();
+    const tokens = queryTokens(query);
+    const titleMatches = tokens.filter(t => title.includes(t)).length;
+    const abstractMatches = tokens.filter(t => abstract.includes(t)).length;
+    const coverage = tokens.length ? titleMatches / tokens.length : 0;
+    const typeBonus = PREFERRED_TYPES.has(item.workType) ? 16 : 0;
+    const citationSignal = Math.min(18, Math.log10(Number(item.citations || 0) + 1) * 7);
+    return Number(item.crossrefScore || 0) + titleMatches * 22 + abstractMatches * 3 + coverage * 35 + typeBonus + citationSignal;
+  }
+
   function normalizeCrossref(item) {
     const doi = item.DOI ? `https://doi.org/${item.DOI}` : '';
-    const authors = (item.author || []).slice(0, 5).map(author => {
+    const authors = (item.author || []).slice(0, 6).map(author => {
       const name = [author.given, author.family].filter(Boolean).join(' ').trim();
       return name || author.name || '';
     }).filter(Boolean);
     const {year, date} = crossrefDate(item);
     const venue = item['container-title']?.[0] || item.publisher || item.type || 'Crossref';
     const url = safeUrl(item.URL || doi || '');
-    const title = item.title?.[0] || item['short-title']?.[0] || 'Untitled';
+    const title = plainText(item.title?.[0] || item['short-title']?.[0] || 'Untitled');
     return {
       key: `paper:crossref:${item.DOI || item.URL || title}`,
       type: 'paper',
@@ -79,8 +98,18 @@
       venue,
       abstract: truncate(plainText(item.abstract || ''), 520),
       doi,
+      workType: item.type || '',
+      crossrefScore: Number(item.score || 0),
       indexSource: 'Crossref'
     };
+  }
+
+  function usefulPaper(item) {
+    const title = String(item.title || '').trim();
+    if (!title || title === 'Untitled' || title.length < 7) return false;
+    if (LOW_VALUE_TITLE.test(title)) return false;
+    if (item.workType && ['component','reference-entry','dataset','other'].includes(item.workType)) return false;
+    return item.url !== '#';
   }
 
   function writePaperState(items, total) {
@@ -93,20 +122,40 @@
     }
   }
 
-  async function searchCrossref(query) {
+  async function requestCrossref(query, mode='title', rows=36) {
     const url = new URL(CROSSREF_API);
-    url.searchParams.set('query.bibliographic', query);
-    url.searchParams.set('rows', '20');
+    url.searchParams.set(mode === 'title' ? 'query.title' : 'query.bibliographic', query);
+    url.searchParams.set('rows', String(rows));
     const year = Number(els.year.value);
     if (year >= 1900 && year <= 2100) url.searchParams.set('filter', `from-pub-date:${year}-01-01`);
     const res = await fetch(url, {headers:{Accept:'application/json'}, cache:'no-store'});
     if (!res.ok) throw new Error(`Crossref 请求失败 (${res.status})`);
-    const data = await res.json();
-    let items = (data.message?.items || []).map(normalizeCrossref).filter(item => item.url !== '#');
-    if (els.sort.value === 'cited') items.sort((a,b) => b.citations - a.citations);
-    if (els.sort.value === 'newest') items.sort((a,b) => String(b.date).localeCompare(String(a.date)));
+    return res.json();
+  }
+
+  async function searchCrossref(query) {
+    const primary = await requestCrossref(query, 'title', 36);
+    let raw = primary.message?.items || [];
+
+    // For narrow engineering phrases, title search can be sparse. Only then widen the query.
+    if (raw.length < 8) {
+      const broad = await requestCrossref(query, 'bibliographic', 24);
+      const seen = new Set(raw.map(item => item.DOI || item.URL || item.title?.[0]));
+      for (const item of broad.message?.items || []) {
+        const key = item.DOI || item.URL || item.title?.[0];
+        if (!seen.has(key)) raw.push(item);
+      }
+    }
+
+    let items = raw.map(normalizeCrossref).filter(usefulPaper);
+    items.forEach(item => { item.relevance = relevanceScore(item, query); });
+
+    if (els.sort.value === 'cited') items.sort((a,b) => b.citations - a.citations || b.relevance - a.relevance);
+    else if (els.sort.value === 'newest') items.sort((a,b) => String(b.date).localeCompare(String(a.date)) || b.relevance - a.relevance);
+    else items.sort((a,b) => b.relevance - a.relevance);
+
     state.paperBackend = 'crossref';
-    writePaperState(items.slice(0,20), Number(data.message?.['total-results'] || items.length));
+    writePaperState(items.slice(0,20), items.length);
   }
 
   // OpenAlex requires an API key for production use as of 2026-02-13.
@@ -126,7 +175,7 @@
   updateCounts = function updateCountsWithPaperSource() {
     previousUpdateCounts();
     const label = document.querySelector('#paperSourceLabel');
-    if (label) label.textContent = state.paperBackend === 'crossref-error' ? '论文 · Crossref（异常）' : '论文 · Crossref（无需 Key）';
+    if (label) label.textContent = state.paperBackend === 'crossref-error' ? '论文 · Crossref（异常）' : '论文 · Crossref';
   };
 
   // app.js may have already started a URL-based query before this adapter loaded.
