@@ -163,9 +163,11 @@ jobs:
           grep -q 'research-live-scan' /tmp/prod-general.html
 
           QUERY='engineering%20drawing%203D%20reconstruction'
+          DETAIL_PROFILE=/tmp/research-prod-detail-profile
+          rm -rf "$DETAIL_PROFILE"
           "$CHROME" --headless --no-sandbox --disable-gpu \
-            --user-data-dir="$PROFILE" --virtual-time-budget=30000 \
-            --dump-dom "${PAGE_URL}?q=${QUERY}&detail=first&prod=${REVISION}" >/tmp/prod-engineering.html 2>/tmp/prod-engineering.log
+            --user-data-dir="$DETAIL_PROFILE" --virtual-time-budget=34000 \
+            --dump-dom "${PAGE_URL}?q=${QUERY}&detail=first&prod=${REVISION}-detail" >/tmp/prod-engineering.html 2>/tmp/prod-engineering.log
           ENG_PAPERS=$( (grep -o '<article class="ux-result[^>]*data-key="paper:crossref:[^"]*"' /tmp/prod-engineering.html || true) | wc -l | tr -d ' ' )
           ENG_SUMMARIES=$( (grep -o 'class="ux-zh-summary"' /tmp/prod-engineering.html || true) | wc -l | tr -d ' ' )
           NEIGHBOR_NODES=$( (grep -o 'research-neighborhood-node' /tmp/prod-engineering.html || true) | wc -l | tr -d ' ' )
@@ -190,7 +192,7 @@ jobs:
           "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=30000 \
             --window-size=430,932 --screenshot=/tmp/research-prod-mobile.png \
             "${PAGE_URL}?q=${QUERY}&screenshot=${REVISION}-mobile" >/tmp/prod-shot-mobile.log 2>&1
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=30000 \
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=32000 \
             --window-size=1440,1200 --screenshot=/tmp/research-prod-detail.png \
             "${PAGE_URL}?q=${QUERY}&detail=first&screenshot=${REVISION}-detail" >/tmp/prod-shot-detail.log 2>&1
           test -s /tmp/research-prod-desktop.png
