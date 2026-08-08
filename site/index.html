@@ -3,58 +3,59 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#f6f8fc" />
-  <meta name="description" content="Research AI：论文、专利、官网与技术文章统一搜索和中文技术摘要" />
+  <meta name="theme-color" content="#f7f8fa" />
+  <meta name="description" content="Research Search：论文、专利、官网与技术文章统一检索，并提供中文技术摘要" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.crossref.org https://api.openalex.org https://hn.algolia.com https://search.patentsview.org https://*.workers.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
-  <title>Research AI</title>
+  <title>Research Search</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./styles.css?v=10" />
-  <link rel="stylesheet" href="./web.css?v=10" />
-  <link rel="stylesheet" href="./ux.css?v=10" />
-  <link rel="stylesheet" href="./summaries.css?v=10" />
-  <link rel="stylesheet" href="./status.css?v=10" />
-  <link rel="stylesheet" href="./layout.css?v=10" />
-  <link rel="stylesheet" href="./simple.css?v=11" />
+  <link rel="stylesheet" href="./styles.css?v=12" />
+  <link rel="stylesheet" href="./web.css?v=12" />
+  <link rel="stylesheet" href="./ux.css?v=12" />
+  <link rel="stylesheet" href="./summaries.css?v=12" />
+  <link rel="stylesheet" href="./status.css?v=12" />
+  <link rel="stylesheet" href="./layout.css?v=12" />
+  <link rel="stylesheet" href="./research.css?v=12" />
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="./" aria-label="Research AI 首页">
+    <a class="brand" href="./" aria-label="Research Search 首页">
       <span class="brand-mark" aria-hidden="true"><span>R</span><i></i></span>
-      <span class="brand-copy"><strong>Research AI</strong><small>Technology Intelligence</small></span>
+      <span class="brand-copy"><strong>Research Search</strong><small>PAPERS · PATENTS · TECHNICAL WEB</small></span>
     </a>
     <div class="top-actions">
       <button id="densityToggle" class="ghost-btn density-btn" type="button" aria-pressed="false">紧凑视图</button>
-      <button id="settingsBtn" class="ghost-btn" type="button">设置</button>
       <button id="historyBtn" class="ghost-btn" type="button">历史</button>
+      <button id="settingsBtn" class="ghost-btn" type="button">设置</button>
       <button id="exportBtn" class="ghost-btn" type="button">导出</button>
     </div>
   </header>
 
   <main class="shell">
     <section class="hero">
-      <h1>搜索真正值得看的技术内容</h1>
+      <h1>检索论文、专利与技术资料</h1>
+      <p class="subtitle">面向工程与科研的统一检索。每条结果提供中文摘要，并保留作者、来源、年份、引用与原始链接供继续核对。</p>
       <form id="searchForm" class="search-box">
         <label class="sr-only" for="queryInput">搜索关键词</label>
         <span class="search-icon" aria-hidden="true">⌕</span>
-        <input id="queryInput" name="q" type="search" autocomplete="off" placeholder="搜索技术主题、论文方向、专利、公司或工程问题…" />
+        <input id="queryInput" name="q" type="search" autocomplete="off" placeholder="主题、方法、作者、公司、专利或工程问题…" />
         <kbd>/</kbd>
-        <button class="search-btn" type="submit">搜索</button>
+        <button class="search-btn" type="submit">检索</button>
       </form>
       <div class="quick-queries" aria-label="快速搜索">
-        <button type="button" data-query="agentic CAD">Agentic CAD</button>
+        <button type="button" data-query="B-Rep reconstruction CAD">B-Rep reconstruction</button>
         <button type="button" data-query="engineering drawing 3D reconstruction">2D → 3D CAD</button>
-        <button type="button" data-query="multimodal foundation model robotics">Robot foundation model</button>
+        <button type="button" data-query="multimodal foundation model robotics">Robot foundation models</button>
       </div>
     </section>
 
     <section id="searchWorkspace" class="workspace hidden" aria-live="polite">
       <nav class="tabs" aria-label="搜索类型">
-        <button class="tab active" data-tab="all" type="button">全部</button>
+        <button class="tab active" data-tab="all" type="button">综合</button>
         <button class="tab" data-tab="papers" type="button">论文 <span id="paperCount" class="count"></span></button>
         <button class="tab" data-tab="patents" type="button">专利 <span id="patentCount" class="count"></span></button>
         <button class="tab" data-tab="blogs" type="button">技术文章 <span id="blogCount" class="count"></span></button>
-        <button class="tab" data-tab="web" type="button">官网 / Web <span id="webCount" class="count"></span></button>
+        <button class="tab" data-tab="web" type="button">Web <span id="webCount" class="count"></span></button>
         <button class="tab" data-tab="saved" type="button">收藏 <span id="savedCount" class="count"></span></button>
       </nav>
 
@@ -64,7 +65,7 @@
             <label for="sortSelect">排序</label>
             <select id="sortSelect">
               <option value="relevance">相关度</option>
-              <option value="cited">影响力</option>
+              <option value="cited">引用/影响力</option>
               <option value="newest">最新</option>
             </select>
           </div>
@@ -74,7 +75,7 @@
           </div>
           <label class="check-row"><input id="oaOnly" type="checkbox" /><span>开放获取</span></label>
           <label class="check-row"><input id="officialOnly" type="checkbox" /><span>仅官网</span></label>
-          <button id="applyFilters" class="secondary-btn" type="button">应用</button>
+          <button id="applyFilters" class="secondary-btn" type="button">应用筛选</button>
           <div class="source-note sr-only">
             <span id="paperSourceLabel">论文 · Crossref</span>
             <span id="patentSourceLabel">专利 · 专业库入口</span>
@@ -84,7 +85,7 @@
 
         <section class="results-pane">
           <div class="results-head">
-            <div><p id="statusLine" class="status-line">准备搜索</p><h2 id="resultsTitle">搜索结果</h2></div>
+            <div><p id="statusLine" class="status-line">准备搜索</p><h2 id="resultsTitle">检索结果</h2></div>
             <button id="copyQueryBtn" class="ghost-btn compact" type="button">复制查询</button>
           </div>
           <div id="errorBox" class="error-box hidden"></div>
@@ -121,16 +122,15 @@
     <button id="clearHistory" class="danger-btn" type="button">清空历史</button>
   </dialog>
 
-  <footer><span>Research AI</span><a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a></footer>
+  <footer><span>Research Search</span><a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a></footer>
 
-  <script src="./bootstrap.js?v=10" defer></script>
-  <script src="./app.js?v=10" defer></script>
-  <script src="./sources.js?v=10" defer></script>
-  <script src="./web.js?v=10" defer></script>
-  <script src="./ux.js?v=10" defer></script>
-  <script src="./summaries.js?v=10" defer></script>
-  <script src="./status.js?v=10" defer></script>
-  <script src="./ui.js?v=10" defer></script>
-  <script src="./simple.js?v=11" defer></script>
+  <script src="./bootstrap.js?v=12" defer></script>
+  <script src="./app.js?v=12" defer></script>
+  <script src="./sources.js?v=12" defer></script>
+  <script src="./web.js?v=12" defer></script>
+  <script src="./ux.js?v=12" defer></script>
+  <script src="./summaries.js?v=12" defer></script>
+  <script src="./status.js?v=12" defer></script>
+  <script src="./ui.js?v=12" defer></script>
 </body>
 </html>
