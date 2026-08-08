@@ -44,11 +44,12 @@ jobs:
           node --check site/ui.js
           node --check site/research-final.js
           node --check site/research-deeplink.js
+          node --check site/research-v14.js
           node --check worker/src/index.js
           test -s site/research-v13.css
-          grep -q 'research-v13.css?v=13' site/index.html
-          grep -q 'research-final.js?v=13' site/index.html
-          grep -q 'research-deeplink.js?v=13' site/index.html
+          test -s site/research-v14.css
+          grep -q 'research-v14.css?v=14' site/index.html
+          grep -q 'research-v14.js?v=14' site/index.html
 
       - name: Local research workflow test
         shell: bash
@@ -61,31 +62,39 @@ jobs:
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
 
-          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=26000 \
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=28000 \
             --dump-dom 'http://127.0.0.1:8000/?q=machine%20learning' >/tmp/local-general.html 2>/tmp/local-general.log
           PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
           BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
           SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
           PREVIEW_COUNT=$( (grep -o 'class="research-preview-btn"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
           ENHANCED_COUNT=$( (grep -o 'data-research-enhanced="1"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
+          SIGNAL_COUNT=$( (grep -o 'class="research-signal-row"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
+          MARK_COUNT=$( (grep -o 'class="research-query-mark"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
           EXPECTED=$((PAPER_COUNT + BLOG_COUNT))
-          echo "Local general: papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT previews=$PREVIEW_COUNT enhanced=$ENHANCED_COUNT"
+          echo "Local general: papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT previews=$PREVIEW_COUNT enhanced=$ENHANCED_COUNT signals=$SIGNAL_COUNT marks=$MARK_COUNT"
           test "$PAPER_COUNT" -ge 1
           test "$BLOG_COUNT" -ge 1
           test "$SUMMARY_COUNT" -ge "$EXPECTED"
           test "$PREVIEW_COUNT" -ge "$EXPECTED"
           test "$ENHANCED_COUNT" -ge "$EXPECTED"
-          grep -q 'class="research-controlbar"' /tmp/local-general.html
+          test "$SIGNAL_COUNT" -ge "$EXPECTED"
+          test "$MARK_COUNT" -ge 1
+          grep -q 'research-live-scan' /tmp/local-general.html
+          grep -q 'research-command-hud' /tmp/local-general.html
 
-          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=28000 \
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=30000 \
             --dump-dom 'http://127.0.0.1:8000/?q=engineering%20drawing%203D%20reconstruction&detail=first' >/tmp/local-engineering.html 2>/tmp/local-engineering.log
           ENG_PAPERS=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/local-engineering.html || true) | wc -l | tr -d ' ' )
           ENG_SUMMARIES=$( (grep -o 'class="ux-zh-summary"' /tmp/local-engineering.html || true) | wc -l | tr -d ' ' )
-          echo "Local engineering: papers=$ENG_PAPERS summaries=$ENG_SUMMARIES"
+          NEIGHBOR_NODES=$( (grep -o 'research-neighborhood-node' /tmp/local-engineering.html || true) | wc -l | tr -d ' ' )
+          echo "Local engineering: papers=$ENG_PAPERS summaries=$ENG_SUMMARIES neighborhood_nodes=$NEIGHBOR_NODES"
           test "$ENG_PAPERS" -ge 1
           test "$ENG_SUMMARIES" -ge "$ENG_PAPERS"
+          test "$NEIGHBOR_NODES" -ge 2
           grep -q 'class="research-detail-pane open"' /tmp/local-engineering.html
-          grep -q '检索匹配' /tmp/local-engineering.html
+          grep -q 'research-neighborhood-section' /tmp/local-engineering.html
+          grep -q '非引用关系' /tmp/local-engineering.html
           grep -q '复制引用' /tmp/local-engineering.html
           grep -q '复制 BibTeX' /tmp/local-engineering.html
           grep -q 'data-integrity="placeholder-hidden"' /tmp/local-engineering.html
@@ -127,9 +136,8 @@ jobs:
             sleep 5
           done
           grep -q 'Research Search' /tmp/prod-index.html
-          grep -q 'research-v13.css?v=13' /tmp/prod-index.html
-          grep -q 'research-final.js?v=13' /tmp/prod-index.html
-          grep -q 'research-deeplink.js?v=13' /tmp/prod-index.html
+          grep -q 'research-v14.css?v=14' /tmp/prod-index.html
+          grep -q 'research-v14.js?v=14' /tmp/prod-index.html
 
           PROFILE=/tmp/research-prod-profile
           rm -rf "$PROFILE"
@@ -138,29 +146,36 @@ jobs:
             --dump-dom "${PAGE_URL}?warm=${REVISION}" >/tmp/prod-warm.html 2>/tmp/prod-warm.log
 
           "$CHROME" --headless --no-sandbox --disable-gpu \
-            --user-data-dir="$PROFILE" --virtual-time-budget=26000 \
+            --user-data-dir="$PROFILE" --virtual-time-budget=28000 \
             --dump-dom "${PAGE_URL}?q=machine%20learning&prod=${REVISION}" >/tmp/prod-general.html 2>/tmp/prod-general.log
           PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
           BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
           SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
-          PREVIEW_COUNT=$( (grep -o 'class="research-preview-btn"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
+          SIGNAL_COUNT=$( (grep -o 'class="research-signal-row"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
+          MARK_COUNT=$( (grep -o 'class="research-query-mark"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
           EXPECTED=$((PAPER_COUNT + BLOG_COUNT))
-          echo "Production general: papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT previews=$PREVIEW_COUNT"
+          echo "Production general: papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT signals=$SIGNAL_COUNT marks=$MARK_COUNT"
           test "$PAPER_COUNT" -ge 1
           test "$BLOG_COUNT" -ge 1
           test "$SUMMARY_COUNT" -ge "$EXPECTED"
-          test "$PREVIEW_COUNT" -ge "$EXPECTED"
+          test "$SIGNAL_COUNT" -ge "$EXPECTED"
+          test "$MARK_COUNT" -ge 1
+          grep -q 'research-live-scan' /tmp/prod-general.html
 
           QUERY='engineering%20drawing%203D%20reconstruction'
           "$CHROME" --headless --no-sandbox --disable-gpu \
-            --user-data-dir="$PROFILE" --virtual-time-budget=28000 \
+            --user-data-dir="$PROFILE" --virtual-time-budget=30000 \
             --dump-dom "${PAGE_URL}?q=${QUERY}&detail=first&prod=${REVISION}" >/tmp/prod-engineering.html 2>/tmp/prod-engineering.log
           ENG_PAPERS=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-engineering.html || true) | wc -l | tr -d ' ' )
           ENG_SUMMARIES=$( (grep -o 'class="ux-zh-summary"' /tmp/prod-engineering.html || true) | wc -l | tr -d ' ' )
-          echo "Production engineering: papers=$ENG_PAPERS summaries=$ENG_SUMMARIES"
+          NEIGHBOR_NODES=$( (grep -o 'research-neighborhood-node' /tmp/prod-engineering.html || true) | wc -l | tr -d ' ' )
+          echo "Production engineering: papers=$ENG_PAPERS summaries=$ENG_SUMMARIES neighborhood_nodes=$NEIGHBOR_NODES"
           test "$ENG_PAPERS" -ge 1
           test "$ENG_SUMMARIES" -ge "$ENG_PAPERS"
+          test "$NEIGHBOR_NODES" -ge 2
           grep -q 'class="research-detail-pane open"' /tmp/prod-engineering.html
+          grep -q 'research-neighborhood-section' /tmp/prod-engineering.html
+          grep -q '非引用关系' /tmp/prod-engineering.html
           grep -q '复制引用' /tmp/prod-engineering.html
           grep -q '复制 BibTeX' /tmp/prod-engineering.html
           grep -q 'data-integrity="placeholder-hidden"' /tmp/prod-engineering.html
@@ -169,24 +184,24 @@ jobs:
             exit 1
           fi
 
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=28000 \
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=30000 \
             --window-size=1440,1200 --screenshot=/tmp/research-prod-desktop.png \
             "${PAGE_URL}?q=${QUERY}&screenshot=${REVISION}" >/tmp/prod-shot-desktop.log 2>&1
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=28000 \
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=30000 \
             --window-size=430,932 --screenshot=/tmp/research-prod-mobile.png \
             "${PAGE_URL}?q=${QUERY}&screenshot=${REVISION}-mobile" >/tmp/prod-shot-mobile.log 2>&1
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=28000 \
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=30000 \
             --window-size=1440,1200 --screenshot=/tmp/research-prod-detail.png \
             "${PAGE_URL}?q=${QUERY}&detail=first&screenshot=${REVISION}-detail" >/tmp/prod-shot-detail.log 2>&1
           test -s /tmp/research-prod-desktop.png
           test -s /tmp/research-prod-mobile.png
           test -s /tmp/research-prod-detail.png
-          echo 'Production v13 research workflow rendered successfully.'
+          echo 'Production v14 research signal workflow rendered successfully.'
 
       - name: Upload UI screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: research-ui-v13
+          name: research-ui-v14
           path: |
             /tmp/research-prod-desktop.png
             /tmp/research-prod-mobile.png
