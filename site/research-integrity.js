@@ -12,6 +12,9 @@
     if (placeholder.test(value)) {
       text.textContent = '';
       section.hidden = true;
+      section.dataset.integrity = 'placeholder-hidden';
+    } else if (value) {
+      section.dataset.integrity = 'original-present';
     }
   }
 
