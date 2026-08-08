@@ -24,6 +24,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install CJK fonts for visual checks
+        run: |
+          if ! fc-list :lang=zh | grep -q .; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+            fc-cache -f
+          fi
+
       - name: Static JavaScript checks
         run: |
           node --check site/app.js
@@ -34,35 +42,55 @@ jobs:
           node --check site/status.js
           node --check site/bootstrap.js
           node --check site/ui.js
+          node --check site/research-final.js
+          node --check site/research-deeplink.js
           node --check worker/src/index.js
-          test -s site/research.css
+          test -s site/research-v13.css
+          grep -q 'research-v13.css?v=13' site/index.html
+          grep -q 'research-final.js?v=13' site/index.html
+          grep -q 'research-deeplink.js?v=13' site/index.html
 
-      - name: Local browser search smoke test
+      - name: Local research workflow test
+        shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 8000 -d site >/tmp/research-search-http.log 2>&1 &
+          python3 -m http.server 8000 -d site >/tmp/research-local-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID || true' EXIT
           sleep 2
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
-          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=18000 \
-            --dump-dom 'http://127.0.0.1:8000/?q=machine%20learning' >/tmp/search-dom.html 2>/tmp/chrome-local.log || {
-              cat /tmp/chrome-local.log
-              exit 1
-            }
-          PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
-          BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
-          SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
-          SECTION_COUNT=$( (grep -o 'class="ux-section-head"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
-          EXPECTED_SUMMARIES=$((PAPER_COUNT + BLOG_COUNT))
-          grep -q 'Research Search' /tmp/search-dom.html
-          grep -q 'workspace-mode' /tmp/search-dom.html
-          echo "Local results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT source_sections=$SECTION_COUNT"
-          if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ] || [ "$SUMMARY_COUNT" -lt "$EXPECTED_SUMMARIES" ] || [ "$SECTION_COUNT" -ne 0 ]; then
-            echo 'Scholarly result stream validation failed locally.'
-            cat /tmp/chrome-local.log
-            grep -n -E 'Crossref|HN|中文摘要|ux-zh-summary|ux-section-head|data-key=|errorBox|statusLine' /tmp/search-dom.html | head -160 || true
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=26000 \
+            --dump-dom 'http://127.0.0.1:8000/?q=machine%20learning' >/tmp/local-general.html 2>/tmp/local-general.log
+          PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
+          BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
+          SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
+          PREVIEW_COUNT=$( (grep -o 'class="research-preview-btn"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
+          ENHANCED_COUNT=$( (grep -o 'data-research-enhanced="1"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
+          EXPECTED=$((PAPER_COUNT + BLOG_COUNT))
+          echo "Local general: papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT previews=$PREVIEW_COUNT enhanced=$ENHANCED_COUNT"
+          test "$PAPER_COUNT" -ge 1
+          test "$BLOG_COUNT" -ge 1
+          test "$SUMMARY_COUNT" -ge "$EXPECTED"
+          test "$PREVIEW_COUNT" -ge "$EXPECTED"
+          test "$ENHANCED_COUNT" -ge "$EXPECTED"
+          grep -q 'class="research-controlbar"' /tmp/local-general.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=28000 \
+            --dump-dom 'http://127.0.0.1:8000/?q=engineering%20drawing%203D%20reconstruction&detail=first' >/tmp/local-engineering.html 2>/tmp/local-engineering.log
+          ENG_PAPERS=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/local-engineering.html || true) | wc -l | tr -d ' ' )
+          ENG_SUMMARIES=$( (grep -o 'class="ux-zh-summary"' /tmp/local-engineering.html || true) | wc -l | tr -d ' ' )
+          echo "Local engineering: papers=$ENG_PAPERS summaries=$ENG_SUMMARIES"
+          test "$ENG_PAPERS" -ge 1
+          test "$ENG_SUMMARIES" -ge "$ENG_PAPERS"
+          grep -q 'class="research-detail-pane open"' /tmp/local-engineering.html
+          grep -q '检索匹配' /tmp/local-engineering.html
+          grep -q '复制引用' /tmp/local-engineering.html
+          grep -q '复制 BibTeX' /tmp/local-engineering.html
+          grep -q 'data-integrity="placeholder-hidden"' /tmp/local-engineering.html
+          if grep -q '&amp;amp;' /tmp/local-engineering.html; then
+            echo 'Double-escaped scholarly metadata detected locally.'
             exit 1
           fi
 
@@ -80,10 +108,11 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Production browser search test
+      - name: Production research workflow test
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
           REVISION: ${{ github.sha }}
+        shell: bash
         run: |
           set -euo pipefail
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
@@ -98,56 +127,69 @@ jobs:
             sleep 5
           done
           grep -q 'Research Search' /tmp/prod-index.html
-          grep -q 'research.css?v=12' /tmp/prod-index.html
-          grep -q 'ux.js?v=12' /tmp/prod-index.html
-          grep -q 'summaries.js?v=12' /tmp/prod-index.html
+          grep -q 'research-v13.css?v=13' /tmp/prod-index.html
+          grep -q 'research-final.js?v=13' /tmp/prod-index.html
+          grep -q 'research-deeplink.js?v=13' /tmp/prod-index.html
 
-          PROFILE=/tmp/research-search-prod-profile
+          PROFILE=/tmp/research-prod-profile
           rm -rf "$PROFILE"
+          "$CHROME" --headless --no-sandbox --disable-gpu \
+            --user-data-dir="$PROFILE" --virtual-time-budget=5000 \
+            --dump-dom "${PAGE_URL}?warm=${REVISION}" >/tmp/prod-warm.html 2>/tmp/prod-warm.log
 
           "$CHROME" --headless --no-sandbox --disable-gpu \
-            --user-data-dir="$PROFILE" --virtual-time-budget=6000 \
-            --dump-dom "${PAGE_URL}?warm=${REVISION}" >/tmp/prod-warm.html 2>/tmp/chrome-prod-warm.log || {
-              cat /tmp/chrome-prod-warm.log
-              exit 1
-            }
+            --user-data-dir="$PROFILE" --virtual-time-budget=26000 \
+            --dump-dom "${PAGE_URL}?q=machine%20learning&prod=${REVISION}" >/tmp/prod-general.html 2>/tmp/prod-general.log
+          PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
+          BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
+          SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
+          PREVIEW_COUNT=$( (grep -o 'class="research-preview-btn"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
+          EXPECTED=$((PAPER_COUNT + BLOG_COUNT))
+          echo "Production general: papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT previews=$PREVIEW_COUNT"
+          test "$PAPER_COUNT" -ge 1
+          test "$BLOG_COUNT" -ge 1
+          test "$SUMMARY_COUNT" -ge "$EXPECTED"
+          test "$PREVIEW_COUNT" -ge "$EXPECTED"
 
+          QUERY='engineering%20drawing%203D%20reconstruction'
           "$CHROME" --headless --no-sandbox --disable-gpu \
-            --user-data-dir="$PROFILE" --virtual-time-budget=20000 \
-            --dump-dom "${PAGE_URL}?q=machine%20learning&prod=${REVISION}" >/tmp/prod-search.html 2>/tmp/chrome-prod-search.log || {
-              cat /tmp/chrome-prod-search.log
-              exit 1
-            }
-
-          PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' )
-          BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' )
-          SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' )
-          SECTION_COUNT=$( (grep -o 'class="ux-section-head"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' )
-          EXPECTED_SUMMARIES=$((PAPER_COUNT + BLOG_COUNT))
-          grep -q 'workspace-mode' /tmp/prod-search.html
-          echo "Production results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT source_sections=$SECTION_COUNT"
-
-          if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ] || [ "$SUMMARY_COUNT" -lt "$EXPECTED_SUMMARIES" ] || [ "$SECTION_COUNT" -ne 0 ]; then
-            echo 'Production scholarly UI validation failed.'
-            cat /tmp/chrome-prod-search.log
-            grep -n -E 'errorBox|statusLine|Crossref|HN|中文摘要|ux-zh-summary|ux-section-head|data-key=' /tmp/prod-search.html | head -160 || true
+            --user-data-dir="$PROFILE" --virtual-time-budget=28000 \
+            --dump-dom "${PAGE_URL}?q=${QUERY}&detail=first&prod=${REVISION}" >/tmp/prod-engineering.html 2>/tmp/prod-engineering.log
+          ENG_PAPERS=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-engineering.html || true) | wc -l | tr -d ' ' )
+          ENG_SUMMARIES=$( (grep -o 'class="ux-zh-summary"' /tmp/prod-engineering.html || true) | wc -l | tr -d ' ' )
+          echo "Production engineering: papers=$ENG_PAPERS summaries=$ENG_SUMMARIES"
+          test "$ENG_PAPERS" -ge 1
+          test "$ENG_SUMMARIES" -ge "$ENG_PAPERS"
+          grep -q 'class="research-detail-pane open"' /tmp/prod-engineering.html
+          grep -q '复制引用' /tmp/prod-engineering.html
+          grep -q '复制 BibTeX' /tmp/prod-engineering.html
+          grep -q 'data-integrity="placeholder-hidden"' /tmp/prod-engineering.html
+          if grep -q '&amp;amp;' /tmp/prod-engineering.html; then
+            echo 'Double-escaped scholarly metadata detected in production.'
             exit 1
           fi
 
-          "$CHROME" --headless --no-sandbox --disable-gpu \
-            --window-size=1440,1200 --virtual-time-budget=20000 \
-            --screenshot=/tmp/research-prod.png \
-            "${PAGE_URL}?q=machine%20learning&screenshot=${REVISION}" >/tmp/chrome-shot.log 2>&1 || {
-              cat /tmp/chrome-shot.log
-              exit 1
-            }
-          test -s /tmp/research-prod.png
-          echo 'Production scholarly result stream rendered successfully.'
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=28000 \
+            --window-size=1440,1200 --screenshot=/tmp/research-prod-desktop.png \
+            "${PAGE_URL}?q=${QUERY}&screenshot=${REVISION}" >/tmp/prod-shot-desktop.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=28000 \
+            --window-size=430,932 --screenshot=/tmp/research-prod-mobile.png \
+            "${PAGE_URL}?q=${QUERY}&screenshot=${REVISION}-mobile" >/tmp/prod-shot-mobile.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=28000 \
+            --window-size=1440,1200 --screenshot=/tmp/research-prod-detail.png \
+            "${PAGE_URL}?q=${QUERY}&detail=first&screenshot=${REVISION}-detail" >/tmp/prod-shot-detail.log 2>&1
+          test -s /tmp/research-prod-desktop.png
+          test -s /tmp/research-prod-mobile.png
+          test -s /tmp/research-prod-detail.png
+          echo 'Production v13 research workflow rendered successfully.'
 
-      - name: Upload UI screenshot
+      - name: Upload UI screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: research-ui-v12
-          path: /tmp/research-prod.png
+          name: research-ui-v13
+          path: |
+            /tmp/research-prod-desktop.png
+            /tmp/research-prod-mobile.png
+            /tmp/research-prod-detail.png
           if-no-files-found: error
           retention-days: 3
