@@ -1,13 +1,19 @@
 (() => {
   const CROSSREF_API = 'https://api.crossref.org/works';
-  const LOW_VALUE_TITLE = /^(index|subject index|author index|contents?|table of contents|front matter|back matter|preface|foreword|editorial|introduction|conclusion|references|bibliography)$/i;
-  const PREFERRED_TYPES = new Set(['journal-article','proceedings-article','posted-content','book-chapter','report','dissertation']);
+  const LOW_VALUE_TITLE = /^(index|subject index|author index|contents?|table of contents|front matter|back matter|preface|foreword|introduction|conclusion|references|bibliography|editorial(?:\b|:).*)$/i;
+  const TYPE_WEIGHT = new Map([
+    ['journal-article', 24],
+    ['proceedings-article', 22],
+    ['posted-content', 18],
+    ['dissertation', 15],
+    ['report', 13],
+    ['book-chapter', 6],
+    ['book', 4]
+  ]);
 
   state.paperBackend = 'crossref';
   state.__paperWriteSource = '';
 
-  // Guard paper state so any OpenAlex request that started before this adapter loaded
-  // cannot overwrite newer Crossref results when it finishes later.
   let paperStore = state.papers;
   let paperTotalStore = state.paperTotal;
   Object.defineProperty(state, 'papers', {
@@ -57,35 +63,57 @@
       .trim();
   }
 
+  function normalized(value='') {
+    return plainText(value).toLowerCase().replace(/[^a-z0-9\u3400-\u9fff]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   function queryTokens(query='') {
     return [...new Set(String(query).toLowerCase().match(/[a-z0-9][a-z0-9+.#-]{1,}|[\u3400-\u9fff]{2,}/g) || [])]
-      .filter(x => !['the','and','for','with','from','into','using','based'].includes(x));
+      .filter(x => !['the','and','for','with','from','into','using','based','study','analysis'].includes(x));
   }
 
   function relevanceScore(item, query) {
-    const title = String(item.title || '').toLowerCase();
-    const abstract = String(item.abstract || '').toLowerCase();
+    const title = normalized(item.title);
+    const abstract = normalized(item.abstract);
+    const queryNorm = normalized(query);
     const tokens = queryTokens(query);
     const titleMatches = tokens.filter(t => title.includes(t)).length;
     const abstractMatches = tokens.filter(t => abstract.includes(t)).length;
     const coverage = tokens.length ? titleMatches / tokens.length : 0;
-    const typeBonus = PREFERRED_TYPES.has(item.workType) ? 16 : 0;
-    const citationSignal = Math.min(18, Math.log10(Number(item.citations || 0) + 1) * 7);
-    return Number(item.crossrefScore || 0) + titleMatches * 22 + abstractMatches * 3 + coverage * 35 + typeBonus + citationSignal;
+    const exactPhrase = queryNorm && title.includes(queryNorm) ? 38 : 0;
+    const startsWithPhrase = queryNorm && title.startsWith(queryNorm) ? 10 : 0;
+    const typeBonus = TYPE_WEIGHT.get(item.workType) || 0;
+    const citationSignal = Math.min(30, Math.log10(Number(item.citations || 0) + 1) * 10);
+    const currentYear = new Date().getFullYear();
+    const recencySignal = item.year && item.year >= currentYear - 3 ? 4 : 0;
+    const genericExactPenalty = title === queryNorm && ['book-chapter','book','reference-entry'].includes(item.workType) && Number(item.citations || 0) < 25 ? 34 : 0;
+    const veryShortPenalty = title.split(' ').length <= 2 && tokens.length >= 2 && Number(item.citations || 0) < 10 ? 16 : 0;
+    return Number(item.crossrefScore || 0)
+      + titleMatches * 25
+      + abstractMatches * 4
+      + coverage * 42
+      + exactPhrase
+      + startsWithPhrase
+      + typeBonus
+      + citationSignal
+      + recencySignal
+      - genericExactPenalty
+      - veryShortPenalty;
   }
 
   function normalizeCrossref(item) {
     const doi = item.DOI ? `https://doi.org/${item.DOI}` : '';
-    const authors = (item.author || []).slice(0, 6).map(author => {
+    const authors = (item.author || []).slice(0, 8).map(author => {
       const name = [author.given, author.family].filter(Boolean).join(' ').trim();
       return name || author.name || '';
     }).filter(Boolean);
     const {year, date} = crossrefDate(item);
-    const venue = item['container-title']?.[0] || item.publisher || item.type || 'Crossref';
+    const venue = plainText(item['container-title']?.[0] || item.publisher || item.type || 'Crossref');
     const url = safeUrl(item.URL || doi || '');
     const title = plainText(item.title?.[0] || item['short-title']?.[0] || 'Untitled');
+    const oa = Array.isArray(item.license) && item.license.length > 0;
     return {
-      key: `paper:crossref:${item.DOI || item.URL || title}`,
+      key: `paper:crossref:${item.DOI || item.URL || `${title}:${year || ''}`}`,
       type: 'paper',
       id: item.DOI || item.URL || title,
       title,
@@ -94,9 +122,9 @@
       year,
       date,
       citations: item['is-referenced-by-count'] || 0,
-      oa: false,
+      oa,
       venue,
-      abstract: truncate(plainText(item.abstract || ''), 520),
+      abstract: truncate(plainText(item.abstract || ''), 720),
       doi,
       workType: item.type || '',
       crossrefScore: Number(item.score || 0),
@@ -105,11 +133,17 @@
   }
 
   function usefulPaper(item) {
-    const title = String(item.title || '').trim();
+    const title = plainText(item.title || '');
     if (!title || title === 'Untitled' || title.length < 7) return false;
     if (LOW_VALUE_TITLE.test(title)) return false;
-    if (item.workType && ['component','reference-entry','dataset','other'].includes(item.workType)) return false;
+    if (item.workType && ['component','reference-entry','dataset','other','journal-issue','journal-volume'].includes(item.workType)) return false;
     return item.url !== '#';
+  }
+
+  function paperIdentity(item) {
+    const doi = String(item.doi || '').replace(/^https?:\/\/doi\.org\//i, '').toLowerCase();
+    if (doi) return `doi:${doi}`;
+    return `title:${normalized(item.title)}:${item.year || ''}`;
   }
 
   function writePaperState(items, total) {
@@ -122,7 +156,7 @@
     }
   }
 
-  async function requestCrossref(query, mode='title', rows=36) {
+  async function requestCrossref(query, mode='title', rows=28) {
     const url = new URL(CROSSREF_API);
     url.searchParams.set(mode === 'title' ? 'query.title' : 'query.bibliographic', query);
     url.searchParams.set('rows', String(rows));
@@ -134,22 +168,23 @@
   }
 
   async function searchCrossref(query) {
-    const primary = await requestCrossref(query, 'title', 36);
-    let raw = primary.message?.items || [];
+    const [titleResponse, broadResponse] = await Promise.all([
+      requestCrossref(query, 'title', 30),
+      requestCrossref(query, 'bibliographic', 30)
+    ]);
 
-    // For narrow engineering phrases, title search can be sparse. Only then widen the query.
-    if (raw.length < 8) {
-      const broad = await requestCrossref(query, 'bibliographic', 24);
-      const seen = new Set(raw.map(item => item.DOI || item.URL || item.title?.[0]));
-      for (const item of broad.message?.items || []) {
-        const key = item.DOI || item.URL || item.title?.[0];
-        if (!seen.has(key)) raw.push(item);
-      }
+    const raw = [...(titleResponse.message?.items || []), ...(broadResponse.message?.items || [])];
+    const unique = new Map();
+    for (const rawItem of raw) {
+      const item = normalizeCrossref(rawItem);
+      if (!usefulPaper(item)) continue;
+      item.relevance = relevanceScore(item, query);
+      const id = paperIdentity(item);
+      const previous = unique.get(id);
+      if (!previous || item.relevance > previous.relevance) unique.set(id, item);
     }
 
-    let items = raw.map(normalizeCrossref).filter(usefulPaper);
-    items.forEach(item => { item.relevance = relevanceScore(item, query); });
-
+    let items = [...unique.values()];
     if (els.sort.value === 'cited') items.sort((a,b) => b.citations - a.citations || b.relevance - a.relevance);
     else if (els.sort.value === 'newest') items.sort((a,b) => String(b.date).localeCompare(String(a.date)) || b.relevance - a.relevance);
     else items.sort((a,b) => b.relevance - a.relevance);
@@ -158,8 +193,6 @@
     writePaperState(items.slice(0,20), items.length);
   }
 
-  // OpenAlex requires an API key for production use as of 2026-02-13.
-  // Keep the UI useful without credentials by using Crossref as the default paper source.
   searchPapers = async function searchPapersKeyless(query) {
     try {
       await searchCrossref(query);
@@ -178,7 +211,5 @@
     if (label) label.textContent = state.paperBackend === 'crossref-error' ? '论文 · Crossref（异常）' : '论文 · Crossref';
   };
 
-  // app.js may have already started a URL-based query before this adapter loaded.
-  // Re-run after all deferred scripts install their wrappers.
   if (state.query) setTimeout(() => performSearch(state.query), 0);
 })();
