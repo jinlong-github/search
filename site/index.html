@@ -3,19 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#f7f8fa" />
+  <meta name="theme-color" content="#f4f5f7" />
   <meta name="description" content="Research Search：论文、专利、官网与技术文章统一检索，并提供中文技术摘要" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.crossref.org https://api.openalex.org https://hn.algolia.com https://search.patentsview.org https://*.workers.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
   <title>Research Search</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./styles.css?v=12" />
-  <link rel="stylesheet" href="./web.css?v=12" />
-  <link rel="stylesheet" href="./ux.css?v=12" />
-  <link rel="stylesheet" href="./summaries.css?v=12" />
-  <link rel="stylesheet" href="./status.css?v=12" />
-  <link rel="stylesheet" href="./layout.css?v=12" />
-  <link rel="stylesheet" href="./research.css?v=12" />
+  <link rel="stylesheet" href="./styles.css?v=13" />
+  <link rel="stylesheet" href="./web.css?v=13" />
+  <link rel="stylesheet" href="./ux.css?v=13" />
+  <link rel="stylesheet" href="./summaries.css?v=13" />
+  <link rel="stylesheet" href="./status.css?v=13" />
+  <link rel="stylesheet" href="./layout.css?v=13" />
+  <link rel="stylesheet" href="./research.css?v=13" />
+  <link rel="stylesheet" href="./research-v13.css?v=13" />
 </head>
 <body>
   <header class="topbar">
@@ -33,8 +34,8 @@
 
   <main class="shell">
     <section class="hero">
-      <h1>检索论文、专利与技术资料</h1>
-      <p class="subtitle">面向工程与科研的统一检索。每条结果提供中文摘要，并保留作者、来源、年份、引用与原始链接供继续核对。</p>
+      <h1>检索论文、专利与工程资料</h1>
+      <p class="subtitle">以文献记录为中心：先看作者、来源、年份、引用与中文摘要，再进入原文核对方法、实验和结论。</p>
       <form id="searchForm" class="search-box">
         <label class="sr-only" for="queryInput">搜索关键词</label>
         <span class="search-icon" aria-hidden="true">⌕</span>
@@ -124,13 +125,14 @@
 
   <footer><span>Research Search</span><a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a></footer>
 
-  <script src="./bootstrap.js?v=12" defer></script>
-  <script src="./app.js?v=12" defer></script>
-  <script src="./sources.js?v=12" defer></script>
-  <script src="./web.js?v=12" defer></script>
-  <script src="./ux.js?v=12" defer></script>
-  <script src="./summaries.js?v=12" defer></script>
-  <script src="./status.js?v=12" defer></script>
-  <script src="./ui.js?v=12" defer></script>
+  <script src="./bootstrap.js?v=13" defer></script>
+  <script src="./app.js?v=13" defer></script>
+  <script src="./sources.js?v=13" defer></script>
+  <script src="./web.js?v=13" defer></script>
+  <script src="./ux.js?v=13" defer></script>
+  <script src="./summaries.js?v=13" defer></script>
+  <script src="./status.js?v=13" defer></script>
+  <script src="./ui.js?v=13" defer></script>
+  <script src="./research-ui.js?v=13" defer></script>
 </body>
 </html>
