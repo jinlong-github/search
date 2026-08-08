@@ -65,23 +65,6 @@ jobs:
           grep -q 'id="researchDetailPane"' /tmp/search-dom.html
           grep -q 'class="research-filter-toggle"' /tmp/search-dom.html
 
-      - name: Scholarly detail pane test
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 -m http.server 8000 -d site >/tmp/research-detail-http.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill $SERVER_PID || true' EXIT
-          sleep 2
-          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
-          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=26000 \
-            --dump-dom 'http://127.0.0.1:8000/?q=machine%20learning&detail=first' >/tmp/detail-dom.html 2>/tmp/detail-chrome.log
-          grep -q 'class="research-detail-pane open"' /tmp/detail-dom.html
-          grep -q '检索匹配' /tmp/detail-dom.html
-          grep -q '复制引用' /tmp/detail-dom.html
-          grep -q '复制 BibTeX' /tmp/detail-dom.html
-          grep -q 'research-active-result' /tmp/detail-dom.html
-
       - name: Engineering-domain search test
         shell: bash
         run: |
@@ -102,6 +85,28 @@ jobs:
             echo 'Low-value scholarly record leaked into engineering results.'
             exit 1
           fi
+          if grep -q '&amp;amp;' /tmp/engineering-dom.html; then
+            echo 'Double-escaped scholarly metadata detected.'
+            exit 1
+          fi
+
+      - name: Scholarly detail integrity test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 -d site >/tmp/research-detail-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          sleep 2
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=28000 \
+            --dump-dom 'http://127.0.0.1:8000/?q=engineering%20drawing%203D%20reconstruction&detail=first' >/tmp/detail-dom.html 2>/tmp/detail-chrome.log
+          grep -q 'class="research-detail-pane open"' /tmp/detail-dom.html
+          grep -q '检索匹配' /tmp/detail-dom.html
+          grep -q '复制引用' /tmp/detail-dom.html
+          grep -q '复制 BibTeX' /tmp/detail-dom.html
+          grep -q 'research-active-result' /tmp/detail-dom.html
+          grep -q 'data-integrity="placeholder-hidden"' /tmp/detail-dom.html
 
       - name: Capture research screenshots
         shell: bash
