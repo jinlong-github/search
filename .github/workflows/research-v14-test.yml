@@ -1,0 +1,108 @@
+name: Research v14 Signal Test
+
+on:
+  push:
+    branches: [research-v14-motion]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install CJK fonts
+        run: |
+          if ! fc-list :lang=zh | grep -q .; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+            fc-cache -f
+          fi
+
+      - name: Static checks
+        run: |
+          node --check site/research-v14.js
+          node --check site/research-final.js
+          node --check site/research-deeplink.js
+          grep -q 'research-v14.css?v=14' site/index.html
+          grep -q 'research-v14.js?v=14' site/index.html
+          test -s site/research-v14.css
+
+      - name: Browser signal smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 -d site >/tmp/v14-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          sleep 2
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=30000 \
+            --dump-dom 'http://127.0.0.1:8000/?q=engineering%20drawing%203D%20reconstruction' >/tmp/v14-dom.html 2>/tmp/v14-chrome.log
+          PAPERS=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/v14-dom.html || true) | wc -l | tr -d ' ' )
+          SIGNALS=$( (grep -o 'class="research-signal-row"' /tmp/v14-dom.html || true) | wc -l | tr -d ' ' )
+          MARKS=$( (grep -o 'class="research-query-mark"' /tmp/v14-dom.html || true) | wc -l | tr -d ' ' )
+          V14=$( (grep -o 'data-research-v14=' /tmp/v14-dom.html || true) | wc -l | tr -d ' ' )
+          echo "papers=$PAPERS signals=$SIGNALS marks=$MARKS v14=$V14"
+          test "$PAPERS" -ge 1
+          test "$SIGNALS" -ge "$PAPERS"
+          test "$MARKS" -ge 1
+          test "$V14" -ge "$PAPERS"
+          grep -q 'research-live-scan' /tmp/v14-dom.html
+          grep -q 'research-command-hud' /tmp/v14-dom.html
+
+      - name: Detail neighborhood test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 -d site >/tmp/v14-detail-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          sleep 2
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=32000 \
+            --dump-dom 'http://127.0.0.1:8000/?q=engineering%20drawing%203D%20reconstruction&detail=first' >/tmp/v14-detail.html 2>/tmp/v14-detail-chrome.log
+          grep -q 'class="research-detail-pane open"' /tmp/v14-detail.html
+          grep -q 'research-neighborhood-section' /tmp/v14-detail.html
+          grep -q 'research-neighborhood-map' /tmp/v14-detail.html
+          NODES=$( (grep -o 'research-neighborhood-node' /tmp/v14-detail.html || true) | wc -l | tr -d ' ' )
+          echo "neighborhood_nodes=$NODES"
+          test "$NODES" -ge 2
+          grep -q '非引用关系' /tmp/v14-detail.html
+
+      - name: Capture v14 screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 -d site >/tmp/v14-visual-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          sleep 2
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          QUERY='engineering%20drawing%203D%20reconstruction'
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=30000 \
+            --window-size=1440,1200 --screenshot=/tmp/v14-desktop.png \
+            "http://127.0.0.1:8000/?q=${QUERY}&visual=v14" >/tmp/v14-desktop.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=32000 \
+            --window-size=1440,1200 --screenshot=/tmp/v14-detail.png \
+            "http://127.0.0.1:8000/?q=${QUERY}&detail=first&visual=v14-detail" >/tmp/v14-detail-shot.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=30000 \
+            --window-size=430,932 --screenshot=/tmp/v14-mobile.png \
+            "http://127.0.0.1:8000/?q=${QUERY}&visual=v14-mobile" >/tmp/v14-mobile.log 2>&1
+          test -s /tmp/v14-desktop.png
+          test -s /tmp/v14-detail.png
+          test -s /tmp/v14-mobile.png
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-v14-screenshots
+          path: |
+            /tmp/v14-desktop.png
+            /tmp/v14-detail.png
+            /tmp/v14-mobile.png
+          retention-days: 3
