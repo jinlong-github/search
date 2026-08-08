@@ -1,0 +1,265 @@
+/* v12 · Scholarly research interface
+   Goal: feel like a serious literature database, not a SaaS dashboard. */
+:root{
+  color-scheme:light;
+  --research-bg:#f7f8fa;
+  --research-paper:#ffffff;
+  --research-text:#172033;
+  --research-muted:#667085;
+  --research-faint:#98a2b3;
+  --research-line:#e4e7ec;
+  --research-line-strong:#d0d5dd;
+  --research-link:#1d4ed8;
+  --research-teal:#0f766e;
+  --research-amber:#a16207;
+}
+html{background:var(--research-bg);color-scheme:light}
+body{
+  margin:0;
+  color:var(--research-text);
+  background:var(--research-bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif;
+  letter-spacing:0;
+}
+body::before,body::after{display:none!important}
+
+/* Header: quiet utility bar */
+.topbar{
+  height:56px;
+  padding:0 clamp(18px,3vw,40px);
+  background:rgba(255,255,255,.97);
+  border-bottom:1px solid var(--research-line);
+  box-shadow:none;
+  backdrop-filter:none;
+}
+.brand{gap:10px;color:#101828;text-decoration:none}
+.brand-mark{
+  width:28px;height:28px;border-radius:6px;
+  border:1px solid #cbd5e1;background:#fff;color:#172033;
+  box-shadow:none;font-weight:800;
+}
+.brand-mark span{font-size:12px}.brand-mark i{display:none!important}
+.brand-copy{display:grid;gap:1px;line-height:1.05}
+.brand-copy strong{font-size:13.5px;font-weight:700;letter-spacing:-.01em}
+.brand-copy small{
+  color:#8a94a4;font:8.5px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.055em;text-transform:uppercase
+}
+.top-actions{gap:3px}
+.top-actions #densityToggle,.top-actions #exportBtn{display:none!important}
+.top-actions .ghost-btn{
+  border:0;background:transparent;color:#667085;border-radius:5px;
+  padding:7px 9px;font-size:12px;box-shadow:none
+}
+.top-actions .ghost-btn:hover{background:#f2f4f7;color:#1d2939}
+
+.shell{width:min(1180px,calc(100% - 36px));margin:0 auto}
+
+/* Search landing: deliberately plain and credible */
+.hero{
+  position:relative;max-width:900px;margin:0 auto;text-align:center;
+  padding:78px 0 42px;overflow:visible
+}
+.hero-orb,.eyebrow,.hero-sources{display:none!important}
+.hero h1{
+  max-width:none;margin:0;color:#172033;
+  font-size:clamp(30px,4vw,42px);line-height:1.18;
+  letter-spacing:-.035em;font-weight:680
+}
+.subtitle{
+  display:block;max-width:650px;margin:13px auto 25px;
+  color:#667085;font-size:13.5px;line-height:1.7
+}
+.search-box{
+  max-width:820px;margin:0 auto;
+  grid-template-columns:22px minmax(0,1fr) auto auto;
+  gap:8px;padding:7px 7px 7px 13px;
+  border:1px solid #cfd6e2;border-radius:8px;background:#fff;
+  box-shadow:0 1px 2px rgba(16,24,40,.04)
+}
+.search-box:focus-within{
+  border-color:#98a9c4;box-shadow:0 0 0 3px rgba(29,78,216,.06)
+}
+.search-icon{font-size:19px;color:#98a2b3;transform:none}
+.search-box input{color:#172033;font-size:14px;padding:10px 3px}
+.search-box input::placeholder{color:#98a2b3}
+.search-box kbd{
+  width:23px;height:23px;border:1px solid #e0e4ea;border-radius:4px;
+  background:#f8fafc;color:#98a2b3;box-shadow:none;font-size:10px
+}
+.search-btn{
+  border:1px solid #1e4db7;border-radius:6px;padding:9px 17px;
+  background:#2457c5;color:#fff;font-size:12.5px;font-weight:650;box-shadow:none
+}
+.search-btn:hover{background:#1f4dac;transform:none;box-shadow:none}
+.quick-queries{max-width:820px;margin:12px auto 0;gap:4px;justify-content:center}
+.quick-label{display:none!important}
+.quick-queries button{
+  border:0;border-radius:4px;background:transparent;color:#667085;
+  padding:5px 7px;font-size:11px;text-decoration:none
+}
+.quick-queries button:hover{background:#eef2f6;color:#344054}
+
+/* After a query, search becomes a compact research toolbar */
+.workspace-mode .hero{
+  max-width:none;margin:0;padding:14px 0 9px;text-align:left;border:0
+}
+.workspace-mode .hero h1,.workspace-mode .hero .subtitle,.workspace-mode .quick-queries{display:none!important}
+.workspace-mode .search-box{max-width:none;margin:0;border-radius:6px;box-shadow:none}
+.workspace-mode .search-box input{font-size:13.5px;padding:7px 3px}
+.workspace-mode .search-btn{padding:8px 15px}
+.workspace{padding:0 0 64px}
+
+/* Source tabs look like database facets, not product pills */
+.tabs{
+  position:sticky;top:56px;z-index:25;
+  display:flex;gap:22px;padding:0;
+  border-bottom:1px solid var(--research-line);
+  background:rgba(247,248,250,.97);backdrop-filter:blur(8px)
+}
+.tab{
+  position:relative;border:0!important;border-radius:0!important;background:transparent!important;
+  color:#667085;padding:11px 0 10px;font-size:12px;box-shadow:none!important
+}
+.tab:hover{color:#344054}
+.tab.active{color:#172033;font-weight:650}
+.tab.active::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#2457c5
+}
+.count:not(:empty){margin-left:3px;padding:0;background:transparent!important;color:#98a2b3;font-size:10px}
+
+/* One horizontal filter row */
+.content-grid{display:block;padding-top:0}
+.filters{
+  position:sticky;top:91px;z-index:22;
+  display:flex;align-items:center;gap:7px;
+  padding:8px 0;border:0;border-bottom:1px solid var(--research-line);
+  border-radius:0;background:rgba(247,248,250,.97);box-shadow:none;backdrop-filter:blur(8px)
+}
+.filters-head,.source-note{display:none!important}
+.filters .filter-block{display:flex;align-items:center;margin:0}
+.filters .filter-block label{display:none}
+.filters .filter-block select,.filters .filter-block input{
+  height:31px;border:1px solid #d7dde6;border-radius:5px;background:#fff;
+  color:#475467;padding:5px 8px;font-size:11px;box-shadow:none
+}
+.filters .filter-block select{width:108px}.filters .filter-block input{width:94px}
+.filters .check-row{
+  margin:0;padding:6px 7px;border:0;border-radius:4px;background:transparent;
+  color:#667085;font-size:11px;white-space:nowrap
+}
+.filters .check-row:hover{background:#eef1f5}
+.filters .check-row input{accent-color:#2457c5}
+.filters .secondary-btn{
+  width:auto;height:31px;margin-left:auto;padding:5px 12px;
+  border:1px solid #d0d5dd;border-radius:5px;background:#fff;color:#344054;
+  font-size:11px;font-weight:600
+}
+.filters .secondary-btn:hover{background:#f2f4f7;border-color:#c4cad3}
+.ui-filter-hidden{display:none!important}.ui-filter-muted{opacity:.5}
+
+.results-pane{max-width:1050px;margin:0 auto;min-width:0}
+.results-head{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  margin:0;padding:17px 0 10px;border-bottom:1px solid var(--research-line)
+}
+.results-head h2{margin:2px 0 0;color:#172033;font-size:16px;font-weight:650;letter-spacing:-.01em}
+.status-line{margin:0;color:#7b8495;font-size:10.5px}
+.results-head #copyQueryBtn{display:none!important}
+.error-box{border-radius:4px;box-shadow:none}
+.source-health,.overview-card{display:none!important}
+.loading{padding:26px}.loading span{background:#2457c5}
+
+/* Continuous scholarly result list */
+.results,.ux-list-view,.ux-stream{display:block;counter-reset:research-result}
+.ux-section,.ux-section-list{margin:0!important;display:block}
+.ux-all-intro,.ux-section-head{display:none!important}
+.ux-result{
+  counter-increment:research-result;
+  display:grid;grid-template-columns:34px minmax(0,1fr);
+  border:0;border-bottom:1px solid var(--research-line);border-radius:0;
+  background:#fff;box-shadow:none;overflow:visible;transform:none
+}
+.ux-result:first-child{border-top:0}
+.ux-result:hover{background:#fbfcfd;border-color:var(--research-line);box-shadow:none;transform:none}
+.ux-result-rail{
+  display:flex;justify-content:flex-end;align-items:flex-start;
+  padding:19px 8px 0 0;border:0;background:transparent!important;
+  color:#98a2b3;font:10px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace
+}
+.ux-result-rail::before{content:counter(research-result)}
+.ux-type-icon{display:none!important}
+.ux-result-body{padding:15px 10px 14px 0;min-width:0}
+.ux-source-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ux-source-main{display:flex;align-items:center;gap:6px;min-width:0;font-size:10.5px}
+.ux-type-label{
+  padding:0;border:0!important;border-radius:0!important;background:transparent!important;
+  color:#2457c5;font:650 9.5px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.035em;text-transform:uppercase
+}
+.ux-patent .ux-type-label{color:var(--research-amber)}
+.ux-blog .ux-type-label{color:var(--research-teal)}
+.ux-official .ux-type-label{color:#0369a1}.ux-web .ux-type-label{color:#667085}
+.ux-source-dot{color:#c3c9d2}.ux-source-name{color:#7b8495;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ux-source-name.official-source{color:#526174}
+.ux-verified{padding:0;border:0;background:transparent;color:#0f766e;font-size:9px}
+.ux-save{border:0;background:transparent;color:#98a2b3;font-size:16px;padding:0 2px}.ux-save.saved{color:#b7791f}
+.ux-title{margin:5px 0 4px;font-size:16.5px;line-height:1.42;letter-spacing:-.012em;font-weight:620}
+.ux-title a{color:#174ea6;text-decoration:none}.ux-title a:hover{text-decoration:underline;text-underline-offset:2px}
+.ux-authors{margin:0 0 3px;color:#0f766e;font-size:11px;line-height:1.5}
+.ux-metrics{display:flex;flex-wrap:wrap;gap:0;margin:0;color:#667085;font-size:10.5px}
+.ux-metrics span{padding:0;border:0;border-radius:0;background:transparent;color:inherit}
+.ux-metrics span+span::before{content:" · ";color:#b0b7c3;margin:0 4px}
+
+/* Chinese summary is the primary reading block, but not a decorative card */
+.ux-zh-summary{
+  margin:8px 0 0;padding:0;border:0!important;border-radius:0;background:transparent!important
+}
+.ux-zh-summary-head{display:flex;align-items:center;gap:7px;margin:0 0 3px}
+.ux-zh-summary-head span{color:#475467;font-size:10.5px;font-weight:700;letter-spacing:0}
+.ux-zh-summary-head span::before{content:"";display:inline-block;width:3px;height:10px;margin-right:6px;background:#2457c5;vertical-align:-1px}
+.ux-zh-summary-head small{display:none}
+.ux-zh-summary p{margin:0;color:#344054;font-size:13px;line-height:1.65}
+
+/* Original source text stays secondary and collapsible */
+.ux-description{display:grid;grid-template-columns:58px minmax(0,1fr);gap:8px;margin-top:7px;padding-top:0;border:0}
+.ux-description-label{color:#98a2b3;font-size:9.5px;padding-top:2px}
+.ux-description p{margin:0;color:#667085;font-size:11px;line-height:1.55;-webkit-line-clamp:2}
+.ux-description.is-collapsed{display:flex;align-items:center;margin-top:6px;padding:0;border:0}
+.ux-description.is-collapsed .ux-description-label,.ux-description.is-collapsed p{display:none!important}
+.ux-description-toggle{border:0;background:transparent;color:#667085;font-size:10px;padding:0;cursor:pointer}
+.ux-description-toggle:hover{color:#174ea6;text-decoration:underline}
+
+.ux-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:7px;padding-top:0;border:0}
+.ux-index-source{display:flex;align-items:center;gap:5px;color:#98a2b3;font-size:9px}
+.ux-index-source strong{color:#7b8495;font-size:9.5px;font-weight:500}
+.ux-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
+.ux-actions a{
+  border:0!important;border-radius:0!important;background:transparent!important;
+  color:#526174;font-size:10.5px;padding:0;text-decoration:none
+}
+.ux-actions a:hover{color:#174ea6;text-decoration:underline}
+.ux-actions .ux-open{color:#174ea6;font-weight:600;padding:0}
+.ux-fallback{background:#fffdf7}.ux-empty-inline{border:0;border-bottom:1px solid var(--research-line);border-radius:0;background:#fff;color:#667085;padding:30px 34px;text-align:left}
+
+footer{min-height:52px;border-top:1px solid var(--research-line);background:#fff;color:#98a2b3}
+footer a{color:#667085}
+
+dialog{border-radius:8px;border-color:#d9dee7;background:#fff;color:#172033;box-shadow:0 20px 50px rgba(16,24,40,.15)}
+dialog::backdrop{background:rgba(15,23,42,.32);backdrop-filter:none}
+.settings-input{background:#fff!important;color:#344054!important}
+
+@media(max-width:760px){
+  .topbar{height:52px;padding:0 12px}.brand-copy small{display:none}.top-actions #historyBtn{display:none}
+  .shell{width:min(100% - 18px,1180px)}
+  .hero{padding:50px 0 30px}.hero h1{font-size:29px}.subtitle{font-size:12.5px;margin-top:10px}
+  .search-box{grid-template-columns:20px minmax(0,1fr) auto;padding:6px 6px 6px 10px}.search-box kbd{display:none}.search-btn{padding:8px 12px}
+  .quick-queries button:nth-of-type(n+3){display:none}
+  .workspace-mode .hero{padding:10px 0 7px}
+  .tabs{top:52px;gap:17px;overflow-x:auto;scrollbar-width:none}.tab{padding:9px 0;font-size:11px}
+  .filters{top:86px;overflow-x:auto;scrollbar-width:none;gap:5px}.filters .filter-block select{width:100px}.filters .filter-block input{width:84px}.filters .secondary-btn{margin-left:0;flex:none}
+  .results-head{padding-top:13px}.results-head h2{font-size:15px}
+  .ux-result{grid-template-columns:25px minmax(0,1fr)}.ux-result-rail{padding:16px 6px 0 0;font-size:9px}.ux-result-body{padding:12px 5px 12px 0}
+  .ux-title{font-size:15px}.ux-zh-summary p{font-size:12.2px;line-height:1.6}.ux-authors{font-size:10.5px}
+  .ux-source-name{max-width:190px}.ux-index-source{display:none}.ux-footer{justify-content:flex-end}
+}
