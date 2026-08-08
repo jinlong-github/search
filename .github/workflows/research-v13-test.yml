@@ -33,8 +33,10 @@ jobs:
           node --check site/status.js
           node --check site/ui.js
           node --check site/research-final.js
+          node --check site/research-deeplink.js
           grep -q 'research-v13.css?v=13' site/index.html
           grep -q 'research-final.js?v=13' site/index.html
+          grep -q 'research-deeplink.js?v=13' site/index.html
 
       - name: Browser research workflow smoke test
         shell: bash
@@ -63,7 +65,45 @@ jobs:
           grep -q 'id="researchDetailPane"' /tmp/search-dom.html
           grep -q 'class="research-filter-toggle"' /tmp/search-dom.html
 
-      - name: Capture desktop and mobile screenshots
+      - name: Scholarly detail pane test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 -d site >/tmp/research-detail-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          sleep 2
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=26000 \
+            --dump-dom 'http://127.0.0.1:8000/?q=machine%20learning&detail=first' >/tmp/detail-dom.html 2>/tmp/detail-chrome.log
+          grep -q 'class="research-detail-pane open"' /tmp/detail-dom.html
+          grep -q '检索匹配' /tmp/detail-dom.html
+          grep -q '复制引用' /tmp/detail-dom.html
+          grep -q '复制 BibTeX' /tmp/detail-dom.html
+          grep -q 'research-active-result' /tmp/detail-dom.html
+
+      - name: Engineering-domain search test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 -d site >/tmp/research-engineering-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          sleep 2
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=28000 \
+            --dump-dom 'http://127.0.0.1:8000/?q=engineering%20drawing%203D%20reconstruction' >/tmp/engineering-dom.html 2>/tmp/engineering-chrome.log
+          ENG_PAPERS=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/engineering-dom.html || true) | wc -l | tr -d ' ' )
+          ENG_SUMMARIES=$( (grep -o 'class="ux-zh-summary"' /tmp/engineering-dom.html || true) | wc -l | tr -d ' ' )
+          echo "engineering papers=$ENG_PAPERS summaries=$ENG_SUMMARIES"
+          test "$ENG_PAPERS" -ge 1
+          test "$ENG_SUMMARIES" -ge "$ENG_PAPERS"
+          if grep -Eqi '<h3 class="ux-title"[^>]*>.*(>Index<|>Contents<|>Table of Contents<|>Editorial[:<])' /tmp/engineering-dom.html; then
+            echo 'Low-value scholarly record leaked into engineering results.'
+            exit 1
+          fi
+
+      - name: Capture research screenshots
         shell: bash
         run: |
           set -euo pipefail
@@ -72,14 +112,19 @@ jobs:
           trap 'kill $SERVER_PID || true' EXIT
           sleep 2
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=26000 \
+          QUERY='engineering%20drawing%203D%20reconstruction'
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=28000 \
             --window-size=1440,1200 --screenshot=/tmp/research-desktop.png \
-            'http://127.0.0.1:8000/?q=machine%20learning&visual=v13' >/tmp/desktop.log 2>&1 || { cat /tmp/desktop.log; exit 1; }
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=26000 \
+            "http://127.0.0.1:8000/?q=${QUERY}&visual=v13" >/tmp/desktop.log 2>&1 || { cat /tmp/desktop.log; exit 1; }
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=28000 \
             --window-size=430,932 --screenshot=/tmp/research-mobile.png \
-            'http://127.0.0.1:8000/?q=machine%20learning&visual=v13-mobile' >/tmp/mobile.log 2>&1 || { cat /tmp/mobile.log; exit 1; }
+            "http://127.0.0.1:8000/?q=${QUERY}&visual=v13-mobile" >/tmp/mobile.log 2>&1 || { cat /tmp/mobile.log; exit 1; }
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=28000 \
+            --window-size=1440,1200 --screenshot=/tmp/research-detail.png \
+            "http://127.0.0.1:8000/?q=${QUERY}&detail=first&visual=v13-detail" >/tmp/detail.log 2>&1 || { cat /tmp/detail.log; exit 1; }
           test -s /tmp/research-desktop.png
           test -s /tmp/research-mobile.png
+          test -s /tmp/research-detail.png
 
       - name: Upload visual evidence
         uses: actions/upload-artifact@v4
@@ -88,4 +133,5 @@ jobs:
           path: |
             /tmp/research-desktop.png
             /tmp/research-mobile.png
+            /tmp/research-detail.png
           retention-days: 3
