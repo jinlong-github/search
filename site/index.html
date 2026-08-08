@@ -3,17 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0b1020" />
-  <meta name="description" content="Research Search：论文、专利与技术博客统一搜索与技术情报概览" />
+  <meta name="theme-color" content="#0a0e15" />
+  <meta name="description" content="Research Search：论文、专利、官网与技术文章统一搜索和中文技术摘要" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.crossref.org https://api.openalex.org https://hn.algolia.com https://search.patentsview.org https://*.workers.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
   <title>Research Search</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./styles.css?v=8" />
-  <link rel="stylesheet" href="./web.css?v=8" />
-  <link rel="stylesheet" href="./ux.css?v=8" />
-  <link rel="stylesheet" href="./summaries.css?v=8" />
-  <link rel="stylesheet" href="./status.css?v=8" />
+  <link rel="stylesheet" href="./styles.css?v=9" />
+  <link rel="stylesheet" href="./web.css?v=9" />
+  <link rel="stylesheet" href="./ux.css?v=9" />
+  <link rel="stylesheet" href="./summaries.css?v=9" />
+  <link rel="stylesheet" href="./status.css?v=9" />
+  <link rel="stylesheet" href="./layout.css?v=9" />
 </head>
 <body>
   <header class="topbar">
@@ -30,21 +31,21 @@
 
   <main class="shell">
     <section class="hero">
-      <p class="eyebrow">PERSONAL TECHNOLOGY INTELLIGENCE</p>
-      <h1>一次搜索，连接论文、专利、官网与技术文章</h1>
-      <p class="subtitle">论文默认使用无需 API Key 的 Crossref；专利支持 PatentsView；官网与全网结果通过 Cloudflare Worker + Brave Search 聚合；技术文章查询 Hacker News Algolia。每条结果都会生成简短中文摘要，便于快速判断是否值得继续阅读。</p>
+      <p class="eyebrow">TECHNOLOGY INTELLIGENCE SEARCH</p>
+      <h1>搜索研究、专利与工程实践</h1>
+      <p class="subtitle">把论文、专利、官网和技术文章放到同一个检索工作台中。结果按来源分类，并为每条内容提供中文摘要，帮助你先判断价值，再决定是否打开原文。</p>
 
       <form id="searchForm" class="search-box">
         <label class="sr-only" for="queryInput">搜索关键词</label>
         <span class="search-icon" aria-hidden="true">⌕</span>
-        <input id="queryInput" name="q" type="search" autocomplete="off" placeholder="例如：2D engineering drawing to 3D CAD reconstruction" />
+        <input id="queryInput" name="q" type="search" autocomplete="off" placeholder="搜索技术主题、论文方向、专利或公司官网…" />
         <button class="search-btn" type="submit">搜索</button>
       </form>
 
       <div class="quick-queries" aria-label="快速搜索">
-        <button type="button" data-query="agentic CAD">agentic CAD</button>
+        <button type="button" data-query="agentic CAD">Agentic CAD</button>
         <button type="button" data-query="engineering drawing 3D reconstruction">2D → 3D CAD</button>
-        <button type="button" data-query="multimodal foundation model robotics">robot foundation model</button>
+        <button type="button" data-query="multimodal foundation model robotics">Robot foundation model</button>
         <button type="button" data-query="computer aided tolerancing PMI">PMI / tolerancing</button>
       </div>
     </section>
@@ -161,12 +162,12 @@
     <a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a>
   </footer>
 
-  <script src="./bootstrap.js?v=8" defer></script>
-  <script src="./app.js?v=8" defer></script>
-  <script src="./sources.js?v=8" defer></script>
-  <script src="./web.js?v=8" defer></script>
-  <script src="./ux.js?v=8" defer></script>
-  <script src="./summaries.js?v=8" defer></script>
-  <script src="./status.js?v=8" defer></script>
+  <script src="./bootstrap.js?v=9" defer></script>
+  <script src="./app.js?v=9" defer></script>
+  <script src="./sources.js?v=9" defer></script>
+  <script src="./web.js?v=9" defer></script>
+  <script src="./ux.js?v=9" defer></script>
+  <script src="./summaries.js?v=9" defer></script>
+  <script src="./status.js?v=9" defer></script>
 </body>
 </html>
