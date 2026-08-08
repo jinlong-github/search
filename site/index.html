@@ -9,10 +9,11 @@
   <title>Research Search</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./styles.css?v=7" />
-  <link rel="stylesheet" href="./web.css?v=7" />
-  <link rel="stylesheet" href="./ux.css?v=7" />
-  <link rel="stylesheet" href="./status.css?v=7" />
+  <link rel="stylesheet" href="./styles.css?v=8" />
+  <link rel="stylesheet" href="./web.css?v=8" />
+  <link rel="stylesheet" href="./ux.css?v=8" />
+  <link rel="stylesheet" href="./summaries.css?v=8" />
+  <link rel="stylesheet" href="./status.css?v=8" />
 </head>
 <body>
   <header class="topbar">
@@ -31,7 +32,7 @@
     <section class="hero">
       <p class="eyebrow">PERSONAL TECHNOLOGY INTELLIGENCE</p>
       <h1>一次搜索，连接论文、专利、官网与技术文章</h1>
-      <p class="subtitle">论文默认使用无需 API Key 的 Crossref；专利支持 PatentsView；官网与全网结果通过 Cloudflare Worker + Brave Search 聚合；技术文章查询 Hacker News Algolia。</p>
+      <p class="subtitle">论文默认使用无需 API Key 的 Crossref；专利支持 PatentsView；官网与全网结果通过 Cloudflare Worker + Brave Search 聚合；技术文章查询 Hacker News Algolia。每条结果都会生成简短中文摘要，便于快速判断是否值得继续阅读。</p>
 
       <form id="searchForm" class="search-box">
         <label class="sr-only" for="queryInput">搜索关键词</label>
@@ -160,11 +161,12 @@
     <a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a>
   </footer>
 
-  <script src="./bootstrap.js?v=7" defer></script>
-  <script src="./app.js?v=7" defer></script>
-  <script src="./sources.js?v=7" defer></script>
-  <script src="./web.js?v=7" defer></script>
-  <script src="./ux.js?v=7" defer></script>
-  <script src="./status.js?v=7" defer></script>
+  <script src="./bootstrap.js?v=8" defer></script>
+  <script src="./app.js?v=8" defer></script>
+  <script src="./sources.js?v=8" defer></script>
+  <script src="./web.js?v=8" defer></script>
+  <script src="./ux.js?v=8" defer></script>
+  <script src="./summaries.js?v=8" defer></script>
+  <script src="./status.js?v=8" defer></script>
 </body>
 </html>

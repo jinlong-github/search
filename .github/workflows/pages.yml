@@ -30,8 +30,10 @@ jobs:
           node --check site/sources.js
           node --check site/web.js
           node --check site/ux.js
+          node --check site/summaries.js
           node --check site/status.js
           node --check site/bootstrap.js
+          node --check worker/src/index.js
 
       - name: Local browser search smoke test
         run: |
@@ -49,16 +51,18 @@ jobs:
             }
           PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
           BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
-          echo "Local real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT"
-          if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ]; then
-            echo 'Missing real Crossref or HN results locally.'
+          SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
+          EXPECTED_SUMMARIES=$((PAPER_COUNT + BLOG_COUNT))
+          echo "Local real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT Chinese summaries=$SUMMARY_COUNT"
+          if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ] || [ "$SUMMARY_COUNT" -lt "$EXPECTED_SUMMARIES" ]; then
+            echo 'Missing real Crossref/HN results or Chinese summaries locally.'
             echo '--- Chrome log ---'
             cat /tmp/chrome-local.log
             echo '--- Error/status ---'
             grep -o '<div id="errorBox"[^>]*>[^<]*' /tmp/search-dom.html || true
             grep -o '<p id="statusLine"[^>]*>[^<]*' /tmp/search-dom.html || true
             echo '--- Relevant DOM ---'
-            grep -n -E 'Crossref|HN|data-key=|sources.js|errorBox|statusLine' /tmp/search-dom.html | head -120 || true
+            grep -n -E 'Crossref|HN|中文摘要|ux-zh-summary|data-key=|summaries.js|errorBox|statusLine' /tmp/search-dom.html | head -140 || true
             exit 1
           fi
 
@@ -94,7 +98,7 @@ jobs:
             sleep 5
           done
           grep -q 'Research Search' /tmp/prod-index.html
-          grep -q 'sources.js?v=7' /tmp/prod-index.html
+          grep -q 'summaries.js?v=8' /tmp/prod-index.html
 
           PROFILE=/tmp/research-search-prod-profile
           rm -rf "$PROFILE"
@@ -115,17 +119,19 @@ jobs:
 
           PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' )
           BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' )
-          echo "Production real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT"
+          SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' )
+          EXPECTED_SUMMARIES=$((PAPER_COUNT + BLOG_COUNT))
+          echo "Production real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT Chinese summaries=$SUMMARY_COUNT"
           grep -o '<p id="statusLine"[^>]*>[^<]*' /tmp/prod-search.html || true
           grep -o '<div id="errorBox"[^>]*>[^<]*' /tmp/prod-search.html || true
 
-          if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ]; then
-            echo 'Missing real Crossref or HN results on production.'
+          if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ] || [ "$SUMMARY_COUNT" -lt "$EXPECTED_SUMMARIES" ]; then
+            echo 'Missing real Crossref/HN results or Chinese summaries on production.'
             echo '--- Chrome production log ---'
             cat /tmp/chrome-prod-search.log
             echo '--- Relevant DOM ---'
-            grep -n -E 'errorBox|statusLine|Crossref|HN|没有找到论文|data-key=' /tmp/prod-search.html | head -120 || true
+            grep -n -E 'errorBox|statusLine|Crossref|HN|中文摘要|ux-zh-summary|data-key=' /tmp/prod-search.html | head -140 || true
             exit 1
           fi
 
-          echo 'Production Crossref and HN results rendered successfully.'
+          echo 'Production Crossref/HN results and Chinese summaries rendered successfully.'
