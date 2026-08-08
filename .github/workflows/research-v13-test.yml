@@ -32,9 +32,9 @@ jobs:
           node --check site/summaries.js
           node --check site/status.js
           node --check site/ui.js
-          node --check site/research-workspace.js
+          node --check site/research-final.js
           grep -q 'research-v13.css?v=13' site/index.html
-          grep -q 'research-workspace.js?v=13' site/index.html
+          grep -q 'research-final.js?v=13' site/index.html
 
       - name: Browser research workflow smoke test
         shell: bash
@@ -45,17 +45,18 @@ jobs:
           trap 'kill $SERVER_PID || true' EXIT
           sleep 2
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
-          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=22000 \
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=26000 \
             --dump-dom 'http://127.0.0.1:8000/?q=machine%20learning' >/tmp/search-dom.html 2>/tmp/chrome.log
           PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
           BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
           SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
           PREVIEW_COUNT=$( (grep -o 'class="research-preview-btn"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
+          ENHANCED_COUNT=$( (grep -o 'data-research-enhanced="1"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
           EXPECTED=$((PAPER_COUNT + BLOG_COUNT))
-          echo "papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT preview_buttons=$PREVIEW_COUNT"
-          if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ] || [ "$SUMMARY_COUNT" -lt "$EXPECTED" ] || [ "$PREVIEW_COUNT" -lt "$EXPECTED" ]; then
+          echo "papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT previews=$PREVIEW_COUNT enhanced=$ENHANCED_COUNT"
+          if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ] || [ "$SUMMARY_COUNT" -lt "$EXPECTED" ] || [ "$PREVIEW_COUNT" -lt "$EXPECTED" ] || [ "$ENHANCED_COUNT" -lt "$EXPECTED" ]; then
             cat /tmp/chrome.log || true
-            grep -n -E 'research-controlbar|research-preview-btn|researchDetailPane|ux-result|中文摘要|errorBox|statusLine' /tmp/search-dom.html | head -180 || true
+            grep -n -E 'research-controlbar|research-preview-btn|researchDetailPane|data-research-enhanced|ux-result|中文摘要|errorBox|statusLine' /tmp/search-dom.html | head -220 || true
             exit 1
           fi
           grep -q 'class="research-controlbar"' /tmp/search-dom.html
@@ -71,10 +72,10 @@ jobs:
           trap 'kill $SERVER_PID || true' EXIT
           sleep 2
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=22000 \
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=26000 \
             --window-size=1440,1200 --screenshot=/tmp/research-desktop.png \
             'http://127.0.0.1:8000/?q=machine%20learning&visual=v13' >/tmp/desktop.log 2>&1 || { cat /tmp/desktop.log; exit 1; }
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=22000 \
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=26000 \
             --window-size=430,932 --screenshot=/tmp/research-mobile.png \
             'http://127.0.0.1:8000/?q=machine%20learning&visual=v13-mobile' >/tmp/mobile.log 2>&1 || { cat /tmp/mobile.log; exit 1; }
           test -s /tmp/research-desktop.png
