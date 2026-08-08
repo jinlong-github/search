@@ -33,6 +33,7 @@ jobs:
           node --check site/summaries.js
           node --check site/status.js
           node --check site/bootstrap.js
+          node --check site/ui.js
           node --check worker/src/index.js
           test -s site/layout.css
 
@@ -54,6 +55,8 @@ jobs:
           BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
           SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/search-dom.html || true) | wc -l | tr -d ' ' )
           EXPECTED_SUMMARIES=$((PAPER_COUNT + BLOG_COUNT))
+          grep -q 'Research AI' /tmp/search-dom.html
+          grep -q 'id="densityToggle"' /tmp/search-dom.html
           echo "Local real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT Chinese summaries=$SUMMARY_COUNT"
           if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ] || [ "$SUMMARY_COUNT" -lt "$EXPECTED_SUMMARIES" ]; then
             echo 'Missing real Crossref/HN results or Chinese summaries locally.'
@@ -93,9 +96,10 @@ jobs:
             fi
             sleep 5
           done
-          grep -q 'Research Search' /tmp/prod-index.html
-          grep -q 'summaries.js?v=9' /tmp/prod-index.html
-          grep -q 'layout.css?v=9' /tmp/prod-index.html
+          grep -q 'Research AI' /tmp/prod-index.html
+          grep -q 'summaries.js?v=10' /tmp/prod-index.html
+          grep -q 'layout.css?v=10' /tmp/prod-index.html
+          grep -q 'ui.js?v=10' /tmp/prod-index.html
 
           PROFILE=/tmp/research-search-prod-profile
           rm -rf "$PROFILE"
@@ -118,6 +122,7 @@ jobs:
           BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' )
           SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/prod-search.html || true) | wc -l | tr -d ' ' )
           EXPECTED_SUMMARIES=$((PAPER_COUNT + BLOG_COUNT))
+          grep -q 'workspace-mode' /tmp/prod-search.html
           echo "Production real results: Crossref papers=$PAPER_COUNT HN blogs=$BLOG_COUNT Chinese summaries=$SUMMARY_COUNT"
 
           if [ "$PAPER_COUNT" -lt 1 ] || [ "$BLOG_COUNT" -lt 1 ] || [ "$SUMMARY_COUNT" -lt "$EXPECTED_SUMMARIES" ]; then
@@ -127,4 +132,4 @@ jobs:
             exit 1
           fi
 
-          echo 'Production layout, Crossref/HN results and Chinese summaries rendered successfully.'
+          echo 'Production v10 UI, search results and Chinese summaries rendered successfully.'

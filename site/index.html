@@ -3,26 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0a0e15" />
-  <meta name="description" content="Research Search：论文、专利、官网与技术文章统一搜索和中文技术摘要" />
+  <meta name="theme-color" content="#f6f8fc" />
+  <meta name="description" content="Research AI：论文、专利、官网与技术文章统一搜索和中文技术摘要" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.crossref.org https://api.openalex.org https://hn.algolia.com https://search.patentsview.org https://*.workers.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
-  <title>Research Search</title>
+  <title>Research AI</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./styles.css?v=9" />
-  <link rel="stylesheet" href="./web.css?v=9" />
-  <link rel="stylesheet" href="./ux.css?v=9" />
-  <link rel="stylesheet" href="./summaries.css?v=9" />
-  <link rel="stylesheet" href="./status.css?v=9" />
-  <link rel="stylesheet" href="./layout.css?v=9" />
+  <link rel="stylesheet" href="./styles.css?v=10" />
+  <link rel="stylesheet" href="./web.css?v=10" />
+  <link rel="stylesheet" href="./ux.css?v=10" />
+  <link rel="stylesheet" href="./summaries.css?v=10" />
+  <link rel="stylesheet" href="./status.css?v=10" />
+  <link rel="stylesheet" href="./layout.css?v=10" />
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="./" aria-label="Research Search 首页">
-      <span class="brand-mark">R</span>
-      <span>Research Search</span>
+    <a class="brand" href="./" aria-label="Research AI 首页">
+      <span class="brand-mark" aria-hidden="true"><span>R</span><i></i></span>
+      <span class="brand-copy"><strong>Research AI</strong><small>Technology Intelligence</small></span>
     </a>
     <div class="top-actions">
+      <button id="densityToggle" class="ghost-btn density-btn" type="button" aria-pressed="false">紧凑视图</button>
       <button id="settingsBtn" class="ghost-btn" type="button">设置</button>
       <button id="historyBtn" class="ghost-btn" type="button">历史</button>
       <button id="exportBtn" class="ghost-btn" type="button">导出</button>
@@ -31,22 +32,32 @@
 
   <main class="shell">
     <section class="hero">
-      <p class="eyebrow">TECHNOLOGY INTELLIGENCE SEARCH</p>
-      <h1>搜索研究、专利与工程实践</h1>
-      <p class="subtitle">把论文、专利、官网和技术文章放到同一个检索工作台中。结果按来源分类，并为每条内容提供中文摘要，帮助你先判断价值，再决定是否打开原文。</p>
+      <div class="hero-orb hero-orb-a" aria-hidden="true"></div>
+      <div class="hero-orb hero-orb-b" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> RESEARCH AI · TECHNOLOGY INTELLIGENCE</p>
+        <h1>从全球技术信息中，<em>找到真正值得看的内容</em></h1>
+        <p class="subtitle">统一检索论文、专利、官网与工程文章。先看中文摘要和技术信号，再决定是否深入阅读原文。</p>
+      </div>
 
       <form id="searchForm" class="search-box">
         <label class="sr-only" for="queryInput">搜索关键词</label>
         <span class="search-icon" aria-hidden="true">⌕</span>
-        <input id="queryInput" name="q" type="search" autocomplete="off" placeholder="搜索技术主题、论文方向、专利或公司官网…" />
+        <input id="queryInput" name="q" type="search" autocomplete="off" placeholder="搜索技术主题、论文方向、专利、公司或工程问题…" />
+        <kbd>/</kbd>
         <button class="search-btn" type="submit">搜索</button>
       </form>
 
       <div class="quick-queries" aria-label="快速搜索">
+        <span class="quick-label">热门方向</span>
         <button type="button" data-query="agentic CAD">Agentic CAD</button>
         <button type="button" data-query="engineering drawing 3D reconstruction">2D → 3D CAD</button>
         <button type="button" data-query="multimodal foundation model robotics">Robot foundation model</button>
         <button type="button" data-query="computer aided tolerancing PMI">PMI / tolerancing</button>
+      </div>
+
+      <div class="hero-sources" aria-label="数据来源">
+        <span>Crossref</span><i></i><span>PatentsView</span><i></i><span>HN Algolia</span><i></i><span>Official Web</span>
       </div>
     </section>
 
@@ -55,13 +66,14 @@
         <button class="tab active" data-tab="all" type="button">全部</button>
         <button class="tab" data-tab="papers" type="button">论文 <span id="paperCount" class="count"></span></button>
         <button class="tab" data-tab="patents" type="button">专利 <span id="patentCount" class="count"></span></button>
-        <button class="tab" data-tab="blogs" type="button">博客 <span id="blogCount" class="count"></span></button>
+        <button class="tab" data-tab="blogs" type="button">技术文章 <span id="blogCount" class="count"></span></button>
         <button class="tab" data-tab="web" type="button">官网 / Web <span id="webCount" class="count"></span></button>
         <button class="tab" data-tab="saved" type="button">收藏 <span id="savedCount" class="count"></span></button>
       </nav>
 
       <div class="content-grid">
         <aside class="filters">
+          <div class="filters-head"><span>FILTERS</span><strong>筛选结果</strong></div>
           <div class="filter-block">
             <label for="sortSelect">排序</label>
             <select id="sortSelect">
@@ -85,9 +97,9 @@
           <button id="applyFilters" class="secondary-btn" type="button">应用筛选</button>
 
           <div class="source-note">
-            <strong>当前数据源</strong>
-            <span id="paperSourceLabel">论文 · Crossref（无需 Key）</span>
-            <span>博客 · HN Algolia</span>
+            <strong>数据来源</strong>
+            <span id="paperSourceLabel">论文 · Crossref</span>
+            <span>技术文章 · HN Algolia</span>
             <span id="patentSourceLabel">专利 · 专业库入口</span>
             <span id="webSourceLabel">Web · 外部搜索入口</span>
           </div>
@@ -158,16 +170,17 @@
   </dialog>
 
   <footer>
-    <span>Research Search · GitHub Pages</span>
+    <span>Research AI · Technology Intelligence</span>
     <a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a>
   </footer>
 
-  <script src="./bootstrap.js?v=9" defer></script>
-  <script src="./app.js?v=9" defer></script>
-  <script src="./sources.js?v=9" defer></script>
-  <script src="./web.js?v=9" defer></script>
-  <script src="./ux.js?v=9" defer></script>
-  <script src="./summaries.js?v=9" defer></script>
-  <script src="./status.js?v=9" defer></script>
+  <script src="./bootstrap.js?v=10" defer></script>
+  <script src="./app.js?v=10" defer></script>
+  <script src="./sources.js?v=10" defer></script>
+  <script src="./web.js?v=10" defer></script>
+  <script src="./ux.js?v=10" defer></script>
+  <script src="./summaries.js?v=10" defer></script>
+  <script src="./status.js?v=10" defer></script>
+  <script src="./ui.js?v=10" defer></script>
 </body>
 </html>
