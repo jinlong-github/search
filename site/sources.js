@@ -1,6 +1,6 @@
 (() => {
   const CROSSREF_API = 'https://api.crossref.org/works';
-  const LOW_VALUE_TITLE = /^(index|subject index|author index|contents?|table of contents|front matter|back matter|preface|foreword|editorial|introduction|conclusion|references|bibliography)$/i;
+  const LOW_VALUE_TITLE = /^(index|subject index|author index|contents?|table of contents|front matter|back matter|preface|foreword|introduction|conclusion|references|bibliography|editorial(?:\b|:).*)$/i;
   const TYPE_WEIGHT = new Map([
     ['journal-article', 24],
     ['proceedings-article', 22],
@@ -108,7 +108,7 @@
       return name || author.name || '';
     }).filter(Boolean);
     const {year, date} = crossrefDate(item);
-    const venue = item['container-title']?.[0] || item.publisher || item.type || 'Crossref';
+    const venue = plainText(item['container-title']?.[0] || item.publisher || item.type || 'Crossref');
     const url = safeUrl(item.URL || doi || '');
     const title = plainText(item.title?.[0] || item['short-title']?.[0] || 'Untitled');
     const oa = Array.isArray(item.license) && item.license.length > 0;
