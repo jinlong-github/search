@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="./summaries.css?v=10" />
   <link rel="stylesheet" href="./status.css?v=10" />
   <link rel="stylesheet" href="./layout.css?v=10" />
+  <link rel="stylesheet" href="./simple.css?v=11" />
 </head>
 <body>
   <header class="topbar">
@@ -32,14 +33,7 @@
 
   <main class="shell">
     <section class="hero">
-      <div class="hero-orb hero-orb-a" aria-hidden="true"></div>
-      <div class="hero-orb hero-orb-b" aria-hidden="true"></div>
-      <div class="hero-copy">
-        <p class="eyebrow"><span></span> RESEARCH AI · TECHNOLOGY INTELLIGENCE</p>
-        <h1>从全球技术信息中，<em>找到真正值得看的内容</em></h1>
-        <p class="subtitle">统一检索论文、专利、官网与工程文章。先看中文摘要和技术信号，再决定是否深入阅读原文。</p>
-      </div>
-
+      <h1>搜索真正值得看的技术内容</h1>
       <form id="searchForm" class="search-box">
         <label class="sr-only" for="queryInput">搜索关键词</label>
         <span class="search-icon" aria-hidden="true">⌕</span>
@@ -47,17 +41,10 @@
         <kbd>/</kbd>
         <button class="search-btn" type="submit">搜索</button>
       </form>
-
       <div class="quick-queries" aria-label="快速搜索">
-        <span class="quick-label">热门方向</span>
         <button type="button" data-query="agentic CAD">Agentic CAD</button>
         <button type="button" data-query="engineering drawing 3D reconstruction">2D → 3D CAD</button>
         <button type="button" data-query="multimodal foundation model robotics">Robot foundation model</button>
-        <button type="button" data-query="computer aided tolerancing PMI">PMI / tolerancing</button>
-      </div>
-
-      <div class="hero-sources" aria-label="数据来源">
-        <span>Crossref</span><i></i><span>PatentsView</span><i></i><span>HN Algolia</span><i></i><span>Official Web</span>
       </div>
     </section>
 
@@ -72,8 +59,7 @@
       </nav>
 
       <div class="content-grid">
-        <aside class="filters">
-          <div class="filters-head"><span>FILTERS</span><strong>筛选结果</strong></div>
+        <aside class="filters" aria-label="搜索筛选">
           <div class="filter-block">
             <label for="sortSelect">排序</label>
             <select id="sortSelect">
@@ -84,22 +70,13 @@
           </div>
           <div class="filter-block">
             <label for="fromYear">起始年份</label>
-            <input id="fromYear" type="number" min="1900" max="2100" placeholder="例如 2023" />
+            <input id="fromYear" type="number" min="1900" max="2100" placeholder="起始年份" />
           </div>
-          <label class="check-row">
-            <input id="oaOnly" type="checkbox" />
-            <span>仅开放获取论文</span>
-          </label>
-          <label class="check-row">
-            <input id="officialOnly" type="checkbox" />
-            <span>Web 仅显示官网</span>
-          </label>
-          <button id="applyFilters" class="secondary-btn" type="button">应用筛选</button>
-
-          <div class="source-note">
-            <strong>数据来源</strong>
+          <label class="check-row"><input id="oaOnly" type="checkbox" /><span>开放获取</span></label>
+          <label class="check-row"><input id="officialOnly" type="checkbox" /><span>仅官网</span></label>
+          <button id="applyFilters" class="secondary-btn" type="button">应用</button>
+          <div class="source-note sr-only">
             <span id="paperSourceLabel">论文 · Crossref</span>
-            <span>技术文章 · HN Algolia</span>
             <span id="patentSourceLabel">专利 · 专业库入口</span>
             <span id="webSourceLabel">Web · 外部搜索入口</span>
           </div>
@@ -107,18 +84,12 @@
 
         <section class="results-pane">
           <div class="results-head">
-            <div>
-              <p id="statusLine" class="status-line">准备搜索</p>
-              <h2 id="resultsTitle">搜索结果</h2>
-            </div>
+            <div><p id="statusLine" class="status-line">准备搜索</p><h2 id="resultsTitle">搜索结果</h2></div>
             <button id="copyQueryBtn" class="ghost-btn compact" type="button">复制查询</button>
           </div>
-
           <div id="errorBox" class="error-box hidden"></div>
           <div id="overviewBox" class="overview-card hidden"></div>
-          <div id="loading" class="loading hidden">
-            <span></span><span></span><span></span>
-          </div>
+          <div id="loading" class="loading hidden"><span></span><span></span><span></span></div>
           <div id="results" class="results"></div>
         </section>
       </div>
@@ -126,53 +97,31 @@
   </main>
 
   <dialog id="settingsDialog">
-    <div class="dialog-head">
-      <div>
-        <p class="dialog-kicker">DATA SOURCE</p>
-        <h2>搜索设置</h2>
-      </div>
-      <button id="closeSettings" class="icon-btn" type="button" aria-label="关闭">×</button>
-    </div>
+    <div class="dialog-head"><div><p class="dialog-kicker">DATA SOURCE</p><h2>搜索设置</h2></div><button id="closeSettings" class="icon-btn" type="button" aria-label="关闭">×</button></div>
     <div class="settings-section web-settings-section">
       <label for="workerEndpoint">Cloudflare Worker 地址</label>
       <input id="workerEndpoint" class="settings-input" type="url" autocomplete="off" placeholder="https://research-search-api.xxx.workers.dev" />
       <p>配置后，官网 / Web 结果会直接显示在本站；若 Worker 同时配置 PatentsView Key，专利也会优先走后端代理。</p>
-      <div class="settings-inline-actions">
-        <button id="testWorker" class="ghost-btn compact" type="button">测试连接</button>
-        <button id="clearWorker" class="ghost-btn compact" type="button">清除 Worker</button>
-      </div>
+      <div class="settings-inline-actions"><button id="testWorker" class="ghost-btn compact" type="button">测试连接</button><button id="clearWorker" class="ghost-btn compact" type="button">清除 Worker</button></div>
       <div id="workerStatus" class="key-status"></div>
     </div>
-
     <div class="settings-section">
       <label for="patentApiKey">PatentsView API Key</label>
       <input id="patentApiKey" class="settings-input" type="password" autocomplete="off" placeholder="输入 X-Api-Key（可选）" />
-      <p>配置后，专利会直接显示在本站搜索结果中。Key 只在你的浏览器里使用，不会提交到本仓库。PatentsView 当前要求 API Key。</p>
-      <label class="check-row settings-check">
-        <input id="rememberPatentKey" type="checkbox" />
-        <span>记住在这台设备上</span>
-      </label>
+      <p>配置后专利会直接显示在搜索结果中。Key 只保存在你的浏览器。</p>
+      <label class="check-row settings-check"><input id="rememberPatentKey" type="checkbox" /><span>记住在这台设备上</span></label>
       <div id="patentKeyStatus" class="key-status"></div>
     </div>
-    <div class="dialog-actions">
-      <button id="clearPatentKey" class="danger-btn" type="button">清除 Key</button>
-      <button id="saveSettings" class="secondary-btn fit" type="button">保存设置</button>
-    </div>
+    <div class="dialog-actions"><button id="clearPatentKey" class="danger-btn" type="button">清除 Key</button><button id="saveSettings" class="secondary-btn fit" type="button">保存设置</button></div>
   </dialog>
 
   <dialog id="historyDialog">
-    <div class="dialog-head">
-      <h2>搜索历史</h2>
-      <button id="closeHistory" class="icon-btn" type="button" aria-label="关闭">×</button>
-    </div>
+    <div class="dialog-head"><h2>搜索历史</h2><button id="closeHistory" class="icon-btn" type="button" aria-label="关闭">×</button></div>
     <div id="historyList" class="history-list"></div>
     <button id="clearHistory" class="danger-btn" type="button">清空历史</button>
   </dialog>
 
-  <footer>
-    <span>Research AI · Technology Intelligence</span>
-    <a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a>
-  </footer>
+  <footer><span>Research AI</span><a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a></footer>
 
   <script src="./bootstrap.js?v=10" defer></script>
   <script src="./app.js?v=10" defer></script>
@@ -182,5 +131,6 @@
   <script src="./summaries.js?v=10" defer></script>
   <script src="./status.js?v=10" defer></script>
   <script src="./ui.js?v=10" defer></script>
+  <script src="./simple.js?v=11" defer></script>
 </body>
 </html>
