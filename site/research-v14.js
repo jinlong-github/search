@@ -13,6 +13,7 @@
   let scanTimer = null;
   let scanToken = 0;
   let neighborhoodFrame = 0;
+  const neighborhoodTimers = new Set();
 
   function queryText() {
     try { return clean(state.query || queryInput.value); } catch { return clean(queryInput.value); }
@@ -93,6 +94,7 @@
       acceptNode(node) {
         if (!clean(node.nodeValue)) return NodeFilter.FILTER_REJECT;
         if (node.parentElement?.closest('mark,.ux-type-label,.ux-source-name')) return NodeFilter.FILTER_REJECT;
+        rx.lastIndex = 0;
         return rx.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
       }
     });
@@ -224,25 +226,30 @@
   }
 
   function neighborhoodCandidates(active) {
+    const activeRecord = cardRecord(active);
     return [...results.querySelectorAll('.ux-result[data-key]')]
       .filter(card => card !== active)
       .map(card => cardRecord(card))
-      .map(record => ({record, score:similarity(cardRecord(active), record)}))
+      .map(record => ({record, score:similarity(activeRecord, record)}))
       .sort((a,b) => b.score - a.score)
       .slice(0,5);
   }
 
   function renderNeighborhood() {
-    if (!pane?.classList.contains('open')) return;
+    if (!pane?.classList.contains('open')) return false;
     const active = results.querySelector('.research-active-result[data-key]');
-    if (!active) return;
-    const existing = pane.querySelector('.research-neighborhood-section');
-    existing?.remove();
+    if (!active) return false;
 
     const candidates = neighborhoodCandidates(active);
-    if (!candidates.length) return;
+    if (!candidates.length) return false;
+    const signature = `${active.dataset.key || ''}|${candidates.map(({record}) => record.card.dataset.key || '').join('|')}`;
+    const existing = pane.querySelector('.research-neighborhood-section');
+    if (existing?.dataset.signature === signature) return true;
+    existing?.remove();
+
     const section = document.createElement('section');
     section.className = 'research-detail-section research-neighborhood-section';
+    section.dataset.signature = signature;
     section.innerHTML = `
       <div class="research-neighborhood-head"><h3>研究邻域</h3><span>LOCAL MAP</span></div>
       <p class="research-neighborhood-note">按标题概念、来源与年份相似度估算 · 非引用关系</p>
@@ -274,11 +281,24 @@
     });
     const relevance = pane.querySelector('.research-detail-relevance');
     relevance?.insertAdjacentElement('afterend', section);
+    return true;
   }
 
   function scheduleNeighborhood() {
     cancelAnimationFrame(neighborhoodFrame);
     neighborhoodFrame = requestAnimationFrame(renderNeighborhood);
+  }
+
+  function scheduleNeighborhoodBurst() {
+    for (const timer of neighborhoodTimers) clearTimeout(timer);
+    neighborhoodTimers.clear();
+    [0,90,260,700,1600,3400,6500].forEach(delay => {
+      const timer = setTimeout(() => {
+        neighborhoodTimers.delete(timer);
+        if (pane?.classList.contains('open')) renderNeighborhood();
+      }, delay);
+      neighborhoodTimers.add(timer);
+    });
   }
 
   function ensureCommandHud() {
@@ -305,11 +325,24 @@
   }
 
   new MutationObserver(() => queueMicrotask(enhanceResults)).observe(results, {childList:true, subtree:true});
-  if (pane) new MutationObserver(scheduleNeighborhood).observe(pane, {attributes:true, childList:true, subtree:true, attributeFilter:['class']});
+  if (pane) {
+    new MutationObserver(() => {
+      if (pane.classList.contains('open')) scheduleNeighborhoodBurst();
+    }).observe(pane, {attributes:true, attributeFilter:['class']});
+    const detailTitle = pane.querySelector('[data-detail-title]');
+    if (detailTitle) {
+      new MutationObserver(() => {
+        if (pane.classList.contains('open')) scheduleNeighborhoodBurst();
+      }).observe(detailTitle, {childList:true, characterData:true, subtree:true});
+    }
+  }
   document.addEventListener('click', event => {
-    if (event.target.closest('.research-preview-btn,.ux-result[data-key],[data-detail-prev],[data-detail-next]')) setTimeout(scheduleNeighborhood, 0);
+    if (event.target.closest('.research-preview-btn,.ux-result[data-key],[data-detail-prev],[data-detail-next]')) setTimeout(scheduleNeighborhoodBurst, 0);
   });
 
   ensureCommandHud();
-  [0,200,900,3000].forEach(delay => setTimeout(enhanceResults, delay));
+  [0,200,900,3000,6500].forEach(delay => setTimeout(() => {
+    enhanceResults();
+    if (pane?.classList.contains('open')) renderNeighborhood();
+  }, delay));
 })();
