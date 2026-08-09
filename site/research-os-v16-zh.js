@@ -40,6 +40,7 @@
     let next = String(text || '');
     const replacements = [
       ['Query → Research → IP → Engineering','检索问题 → 学术研究 → 知识产权 → 工程落地'],
+      ['Lead / Explore','核心 / 探索'],
       ['Web 工程信号','网页工程信号'],['Web / 官网','网页 / 官网'],[' / Web ',' / 网页 '],
       ['Prior Art','现有技术'],['Worker / PatentsView','后端代理 / PatentsView']
     ];
