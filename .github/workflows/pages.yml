@@ -200,7 +200,8 @@ jobs:
           test -n "$CHROME"
           test -n "$PAGE_URL"
           SOURCE_QUERY='machine%20learning'
-          QUERY='engineering%20drawing%203D%20reconstruction'
+          DETAIL_QUERY='engineering%20drawing%203D%20reconstruction'
+          VIEW_QUERY='machine%20learning'
 
           echo "Testing deployed Chinese Research OS: $PAGE_URL"
           for i in $(seq 1 12); do
@@ -246,7 +247,7 @@ jobs:
           DETAIL_PROFILE=/tmp/research-os-prod-detail
           rm -rf "$DETAIL_PROFILE"
           "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$DETAIL_PROFILE" --virtual-time-budget=36000 \
-            --dump-dom "${PAGE_URL}?q=${QUERY}&detail=first&prod=${REVISION}-detail" >/tmp/prod-detail.html 2>/tmp/prod-detail.log
+            --dump-dom "${PAGE_URL}?q=${DETAIL_QUERY}&detail=first&prod=${REVISION}-detail" >/tmp/prod-detail.html 2>/tmp/prod-detail.log
           ENG_PAPERS=$( (grep -o '<article class="ux-result[^>]*data-key="paper:crossref:[^"]*"' /tmp/prod-detail.html || true) | wc -l | tr -d ' ' )
           NEIGHBOR_NODES=$( (grep -o 'research-neighborhood-node' /tmp/prod-detail.html || true) | wc -l | tr -d ' ' )
           test "$ENG_PAPERS" -ge 1
@@ -258,7 +259,7 @@ jobs:
           MAP_PROFILE=/tmp/research-os-prod-map
           rm -rf "$MAP_PROFILE"
           "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$MAP_PROFILE" --virtual-time-budget=36000 \
-            --dump-dom "${PAGE_URL}?q=${QUERY}&view=map&prod=${REVISION}-map" >/tmp/prod-map.html 2>/tmp/prod-map.log
+            --dump-dom "${PAGE_URL}?q=${VIEW_QUERY}&view=map&prod=${REVISION}-map" >/tmp/prod-map.html 2>/tmp/prod-map.log
           MAP_NODES=$( (grep -o 'research-map-node' /tmp/prod-map.html || true) | wc -l | tr -d ' ' )
           MAP_CLUSTERS=$( (grep -o 'research-map-cluster-label' /tmp/prod-map.html || true) | wc -l | tr -d ' ' )
           echo "Production map: nodes=$MAP_NODES clusters=$MAP_CLUSTERS"
@@ -272,7 +273,7 @@ jobs:
             PROFILE="/tmp/research-os-prod-${VIEW}"
             rm -rf "$PROFILE"
             "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$PROFILE" --virtual-time-budget=36000 \
-              --dump-dom "${PAGE_URL}?q=${QUERY}&view=${VIEW}&prod=${REVISION}-${VIEW}" >"/tmp/prod-${VIEW}.html" 2>"/tmp/prod-${VIEW}.log"
+              --dump-dom "${PAGE_URL}?q=${VIEW_QUERY}&view=${VIEW}&prod=${REVISION}-${VIEW}" >"/tmp/prod-${VIEW}.html" 2>"/tmp/prod-${VIEW}.log"
           done
           YEAR_COLS=$( (grep -o 'research-year-column' /tmp/prod-timeline.html || true) | wc -l | tr -d ' ' )
           ENTITY_ROWS=$( (grep -o 'research-entity-row' /tmp/prod-entities.html || true) | wc -l | tr -d ' ' )
@@ -298,13 +299,13 @@ jobs:
           fi
 
           "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=36000 --window-size=1440,1200 \
-            --screenshot=/tmp/research-os-prod-map.png "${PAGE_URL}?q=${QUERY}&view=map&screenshot=${REVISION}-map" >/tmp/prod-shot-map.log 2>&1
+            --screenshot=/tmp/research-os-prod-map.png "${PAGE_URL}?q=${VIEW_QUERY}&view=map&screenshot=${REVISION}-map" >/tmp/prod-shot-map.log 2>&1
           "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=36000 --window-size=1440,1200 \
-            --screenshot=/tmp/research-os-prod-timeline.png "${PAGE_URL}?q=${QUERY}&view=timeline&screenshot=${REVISION}-timeline" >/tmp/prod-shot-timeline.log 2>&1
+            --screenshot=/tmp/research-os-prod-timeline.png "${PAGE_URL}?q=${VIEW_QUERY}&view=timeline&screenshot=${REVISION}-timeline" >/tmp/prod-shot-timeline.log 2>&1
           "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=36000 --window-size=1440,1200 \
-            --screenshot=/tmp/research-os-prod-path.png "${PAGE_URL}?q=${QUERY}&view=path&screenshot=${REVISION}-path" >/tmp/prod-shot-path.log 2>&1
+            --screenshot=/tmp/research-os-prod-path.png "${PAGE_URL}?q=${VIEW_QUERY}&view=path&screenshot=${REVISION}-path" >/tmp/prod-shot-path.log 2>&1
           "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=36000 --window-size=430,932 \
-            --screenshot=/tmp/research-os-prod-mobile.png "${PAGE_URL}?q=${QUERY}&screenshot=${REVISION}-mobile" >/tmp/prod-shot-mobile.log 2>&1
+            --screenshot=/tmp/research-os-prod-mobile.png "${PAGE_URL}?q=${VIEW_QUERY}&screenshot=${REVISION}-mobile" >/tmp/prod-shot-mobile.log 2>&1
           test -s /tmp/research-os-prod-map.png
           test -s /tmp/research-os-prod-timeline.png
           test -s /tmp/research-os-prod-path.png
