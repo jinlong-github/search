@@ -45,13 +45,25 @@ jobs:
           node --check site/research-final.js
           node --check site/research-deeplink.js
           node --check site/research-v14.js
+          node --check site/research-os-v15.js
+          node --check site/research-os-v15-map.js
+          node --check site/research-os-v15-style.js
           node --check worker/src/index.js
           test -s site/research-v13.css
           test -s site/research-v14.css
-          grep -q 'research-v14.css?v=14' site/index.html
-          grep -q 'research-v14.js?v=14' site/index.html
+          test -s site/research-os-v15.css
+          test -s site/research-os-v15-polish.css
+          grep -q 'Research OS' site/index.html
+          grep -q 'research-v14.js?v=14.1' site/index.html
+          grep -q 'research-os-v15.css?v=15' site/index.html
+          grep -q 'research-os-v15-polish.css?v=15' site/index.html
+          grep -q 'research-os-v15.js?v=15' site/index.html
+          grep -q 'research-os-v15-map.js?v=15' site/index.html
+          grep -q 'research-os-v15-style.js?v=15' site/index.html
+          grep -q "style-src 'self'" site/index.html
+          grep -q 'if (node.textContent !== next)' site/research-os-v15.js
 
-      - name: Local research workflow test
+      - name: Local Research OS workflow test
         shell: bash
         run: |
           set -euo pipefail
@@ -61,44 +73,82 @@ jobs:
           sleep 2
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
+          SOURCE_QUERY='machine%20learning'
+          QUERY='engineering%20drawing%203D%20reconstruction'
 
-          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=28000 \
-            --dump-dom 'http://127.0.0.1:8000/?q=machine%20learning' >/tmp/local-general.html 2>/tmp/local-general.log
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=30000 \
+            --dump-dom "http://127.0.0.1:8000/?q=${SOURCE_QUERY}" >/tmp/local-general.html 2>/tmp/local-general.log
           PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
           BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
           SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
           PREVIEW_COUNT=$( (grep -o 'class="research-preview-btn"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
-          ENHANCED_COUNT=$( (grep -o 'data-research-enhanced="1"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
           SIGNAL_COUNT=$( (grep -o 'class="research-signal-row"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
+          EVIDENCE_COUNT=$( (grep -o 'research-evidence-add' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
           MARK_COUNT=$( (grep -o 'class="research-query-mark"' /tmp/local-general.html || true) | wc -l | tr -d ' ' )
           EXPECTED=$((PAPER_COUNT + BLOG_COUNT))
-          echo "Local general: papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT previews=$PREVIEW_COUNT enhanced=$ENHANCED_COUNT signals=$SIGNAL_COUNT marks=$MARK_COUNT"
+          echo "Local source smoke: papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT previews=$PREVIEW_COUNT signals=$SIGNAL_COUNT evidence=$EVIDENCE_COUNT marks=$MARK_COUNT"
           test "$PAPER_COUNT" -ge 1
           test "$BLOG_COUNT" -ge 1
           test "$SUMMARY_COUNT" -ge "$EXPECTED"
           test "$PREVIEW_COUNT" -ge "$EXPECTED"
-          test "$ENHANCED_COUNT" -ge "$EXPECTED"
           test "$SIGNAL_COUNT" -ge "$EXPECTED"
+          test "$EVIDENCE_COUNT" -ge "$EXPECTED"
           test "$MARK_COUNT" -ge 1
+          grep -q 'id="researchOsRail"' /tmp/local-general.html
+          grep -q 'id="researchOsStatusbar"' /tmp/local-general.html
+          grep -q 'id="researchCommandPalette"' /tmp/local-general.html
           grep -q 'research-live-scan' /tmp/local-general.html
-          grep -q 'research-command-hud' /tmp/local-general.html
 
-          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=30000 \
-            --dump-dom 'http://127.0.0.1:8000/?q=engineering%20drawing%203D%20reconstruction&detail=first' >/tmp/local-engineering.html 2>/tmp/local-engineering.log
-          ENG_PAPERS=$( (grep -o '<article class="ux-result[^>]*data-key="paper:crossref:[^"]*"' /tmp/local-engineering.html || true) | wc -l | tr -d ' ' )
-          ENG_SUMMARIES=$( (grep -o 'class="ux-zh-summary"' /tmp/local-engineering.html || true) | wc -l | tr -d ' ' )
-          NEIGHBOR_NODES=$( (grep -o 'research-neighborhood-node' /tmp/local-engineering.html || true) | wc -l | tr -d ' ' )
-          echo "Local engineering: papers=$ENG_PAPERS summaries=$ENG_SUMMARIES neighborhood_nodes=$NEIGHBOR_NODES"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=34000 \
+            --dump-dom "http://127.0.0.1:8000/?q=${QUERY}&detail=first" >/tmp/local-detail.html 2>/tmp/local-detail.log
+          ENG_PAPERS=$( (grep -o '<article class="ux-result[^>]*data-key="paper:crossref:[^"]*"' /tmp/local-detail.html || true) | wc -l | tr -d ' ' )
+          ENG_SUMMARIES=$( (grep -o 'class="ux-zh-summary"' /tmp/local-detail.html || true) | wc -l | tr -d ' ' )
+          NEIGHBOR_NODES=$( (grep -o 'research-neighborhood-node' /tmp/local-detail.html || true) | wc -l | tr -d ' ' )
+          echo "Local detail: papers=$ENG_PAPERS summaries=$ENG_SUMMARIES neighborhood_nodes=$NEIGHBOR_NODES"
           test "$ENG_PAPERS" -ge 1
           test "$ENG_SUMMARIES" -ge "$ENG_PAPERS"
           test "$NEIGHBOR_NODES" -ge 2
-          grep -q 'class="research-detail-pane open"' /tmp/local-engineering.html
-          grep -q 'research-neighborhood-section' /tmp/local-engineering.html
-          grep -q '非引用关系' /tmp/local-engineering.html
-          grep -q '复制引用' /tmp/local-engineering.html
-          grep -q '复制 BibTeX' /tmp/local-engineering.html
-          grep -q 'data-integrity="placeholder-hidden"' /tmp/local-engineering.html
-          if grep -q '&amp;amp;' /tmp/local-engineering.html; then
+          grep -q 'class="research-detail-pane open"' /tmp/local-detail.html
+          grep -q '非引用关系' /tmp/local-detail.html
+          grep -q '复制 BibTeX' /tmp/local-detail.html
+          grep -q 'data-integrity="placeholder-hidden"' /tmp/local-detail.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=34000 \
+            --dump-dom "http://127.0.0.1:8000/?q=${QUERY}&view=map" >/tmp/local-map.html 2>/tmp/local-map.log
+          MAP_NODES=$( (grep -o 'research-map-node' /tmp/local-map.html || true) | wc -l | tr -d ' ' )
+          MAP_CLUSTERS=$( (grep -o 'research-map-cluster-label' /tmp/local-map.html || true) | wc -l | tr -d ' ' )
+          echo "Local map: nodes=$MAP_NODES clusters=$MAP_CLUSTERS"
+          test "$MAP_NODES" -ge 8
+          test "$MAP_CLUSTERS" -ge 2
+          grep -q '不代表真实引用、合作或语义向量距离' /tmp/local-map.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=34000 \
+            --dump-dom "http://127.0.0.1:8000/?q=${QUERY}&view=timeline" >/tmp/local-timeline.html 2>/tmp/local-timeline.log
+          YEAR_COLS=$( (grep -o 'research-year-column' /tmp/local-timeline.html || true) | wc -l | tr -d ' ' )
+          test "$YEAR_COLS" -ge 3
+          grep -q 'PEAK DENSITY' /tmp/local-timeline.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=34000 \
+            --dump-dom "http://127.0.0.1:8000/?q=${QUERY}&view=entities" >/tmp/local-entities.html 2>/tmp/local-entities.log
+          ENTITY_PANELS=$( (grep -o 'research-entity-panel' /tmp/local-entities.html || true) | wc -l | tr -d ' ' )
+          ENTITY_ROWS=$( (grep -o 'research-entity-row' /tmp/local-entities.html || true) | wc -l | tr -d ' ' )
+          test "$ENTITY_PANELS" -ge 3
+          test "$ENTITY_ROWS" -ge 3
+          grep -q 'VENUES &amp; DOMAINS' /tmp/local-entities.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=34000 \
+            --dump-dom "http://127.0.0.1:8000/?q=${QUERY}&view=path" >/tmp/local-path.html 2>/tmp/local-path.log
+          PATH_NODES=$( (grep -o 'research-path-node' /tmp/local-path.html || true) | wc -l | tr -d ' ' )
+          test "$PATH_NODES" -ge 4
+          grep -q 'Query → Research → IP → Engineering' /tmp/local-path.html
+          grep -q '不能据此推断专利空白' /tmp/local-path.html
+          grep -q '不代表引用、专利族、技术转让' /tmp/local-path.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=30000 \
+            --dump-dom "http://127.0.0.1:8000/?q=${QUERY}&view=evidence" >/tmp/local-evidence.html 2>/tmp/local-evidence.log
+          grep -q '证据板还是空的' /tmp/local-evidence.html
+
+          if grep -q '&amp;amp;' /tmp/local-detail.html; then
             echo 'Double-escaped scholarly metadata detected locally.'
             exit 1
           fi
@@ -117,7 +167,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Production research workflow test
+      - name: Production Research OS workflow test
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
           REVISION: ${{ github.sha }}
@@ -127,86 +177,107 @@ jobs:
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
           test -n "$PAGE_URL"
+          SOURCE_QUERY='machine%20learning'
+          QUERY='engineering%20drawing%203D%20reconstruction'
 
-          echo "Testing deployed site: $PAGE_URL"
+          echo "Testing deployed Research OS: $PAGE_URL"
           for i in $(seq 1 12); do
             if curl -fsSL --retry 2 --max-time 15 "${PAGE_URL}?health=${REVISION}" >/tmp/prod-index.html; then
               break
             fi
             sleep 5
           done
-          grep -q 'Research Search' /tmp/prod-index.html
-          grep -q 'research-v14.css?v=14' /tmp/prod-index.html
-          grep -q 'research-v14.js?v=14' /tmp/prod-index.html
+          grep -q 'Research OS' /tmp/prod-index.html
+          grep -q 'research-os-v15.css?v=15' /tmp/prod-index.html
+          grep -q 'research-os-v15-polish.css?v=15' /tmp/prod-index.html
+          grep -q 'research-os-v15.js?v=15' /tmp/prod-index.html
+          grep -q 'research-os-v15-map.js?v=15' /tmp/prod-index.html
+          grep -q 'research-os-v15-style.js?v=15' /tmp/prod-index.html
 
-          PROFILE=/tmp/research-prod-profile
+          PROFILE=/tmp/research-os-prod-source
           rm -rf "$PROFILE"
-          "$CHROME" --headless --no-sandbox --disable-gpu \
-            --user-data-dir="$PROFILE" --virtual-time-budget=5000 \
-            --dump-dom "${PAGE_URL}?warm=${REVISION}" >/tmp/prod-warm.html 2>/tmp/prod-warm.log
-
-          "$CHROME" --headless --no-sandbox --disable-gpu \
-            --user-data-dir="$PROFILE" --virtual-time-budget=28000 \
-            --dump-dom "${PAGE_URL}?q=machine%20learning&prod=${REVISION}" >/tmp/prod-general.html 2>/tmp/prod-general.log
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$PROFILE" --virtual-time-budget=32000 \
+            --dump-dom "${PAGE_URL}?q=${SOURCE_QUERY}&prod=${REVISION}" >/tmp/prod-general.html 2>/tmp/prod-general.log
           PAPER_COUNT=$( (grep -o 'data-key="paper:crossref:[^"]*"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
           BLOG_COUNT=$( (grep -o 'data-key="blog:[^"]*"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
-          SUMMARY_COUNT=$( (grep -o 'class="ux-zh-summary"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
           SIGNAL_COUNT=$( (grep -o 'class="research-signal-row"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
-          MARK_COUNT=$( (grep -o 'class="research-query-mark"' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
+          EVIDENCE_COUNT=$( (grep -o 'research-evidence-add' /tmp/prod-general.html || true) | wc -l | tr -d ' ' )
           EXPECTED=$((PAPER_COUNT + BLOG_COUNT))
-          echo "Production general: papers=$PAPER_COUNT blogs=$BLOG_COUNT summaries=$SUMMARY_COUNT signals=$SIGNAL_COUNT marks=$MARK_COUNT"
+          echo "Production source smoke: papers=$PAPER_COUNT blogs=$BLOG_COUNT signals=$SIGNAL_COUNT evidence=$EVIDENCE_COUNT"
           test "$PAPER_COUNT" -ge 1
           test "$BLOG_COUNT" -ge 1
-          test "$SUMMARY_COUNT" -ge "$EXPECTED"
           test "$SIGNAL_COUNT" -ge "$EXPECTED"
-          test "$MARK_COUNT" -ge 1
-          grep -q 'research-live-scan' /tmp/prod-general.html
+          test "$EVIDENCE_COUNT" -ge "$EXPECTED"
+          grep -q 'id="researchOsRail"' /tmp/prod-general.html
+          grep -q 'id="researchOsStatusbar"' /tmp/prod-general.html
 
-          QUERY='engineering%20drawing%203D%20reconstruction'
-          DETAIL_PROFILE=/tmp/research-prod-detail-profile
+          DETAIL_PROFILE=/tmp/research-os-prod-detail
           rm -rf "$DETAIL_PROFILE"
-          "$CHROME" --headless --no-sandbox --disable-gpu \
-            --user-data-dir="$DETAIL_PROFILE" --virtual-time-budget=34000 \
-            --dump-dom "${PAGE_URL}?q=${QUERY}&detail=first&prod=${REVISION}-detail" >/tmp/prod-engineering.html 2>/tmp/prod-engineering.log
-          ENG_PAPERS=$( (grep -o '<article class="ux-result[^>]*data-key="paper:crossref:[^"]*"' /tmp/prod-engineering.html || true) | wc -l | tr -d ' ' )
-          ENG_SUMMARIES=$( (grep -o 'class="ux-zh-summary"' /tmp/prod-engineering.html || true) | wc -l | tr -d ' ' )
-          NEIGHBOR_NODES=$( (grep -o 'research-neighborhood-node' /tmp/prod-engineering.html || true) | wc -l | tr -d ' ' )
-          echo "Production engineering: papers=$ENG_PAPERS summaries=$ENG_SUMMARIES neighborhood_nodes=$NEIGHBOR_NODES"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$DETAIL_PROFILE" --virtual-time-budget=36000 \
+            --dump-dom "${PAGE_URL}?q=${QUERY}&detail=first&prod=${REVISION}-detail" >/tmp/prod-detail.html 2>/tmp/prod-detail.log
+          ENG_PAPERS=$( (grep -o '<article class="ux-result[^>]*data-key="paper:crossref:[^"]*"' /tmp/prod-detail.html || true) | wc -l | tr -d ' ' )
+          NEIGHBOR_NODES=$( (grep -o 'research-neighborhood-node' /tmp/prod-detail.html || true) | wc -l | tr -d ' ' )
           test "$ENG_PAPERS" -ge 1
-          test "$ENG_SUMMARIES" -ge "$ENG_PAPERS"
           test "$NEIGHBOR_NODES" -ge 2
-          grep -q 'class="research-detail-pane open"' /tmp/prod-engineering.html
-          grep -q 'research-neighborhood-section' /tmp/prod-engineering.html
-          grep -q '非引用关系' /tmp/prod-engineering.html
-          grep -q '复制引用' /tmp/prod-engineering.html
-          grep -q '复制 BibTeX' /tmp/prod-engineering.html
-          grep -q 'data-integrity="placeholder-hidden"' /tmp/prod-engineering.html
-          if grep -q '&amp;amp;' /tmp/prod-engineering.html; then
+          grep -q 'class="research-detail-pane open"' /tmp/prod-detail.html
+          grep -q '非引用关系' /tmp/prod-detail.html
+          grep -q '复制 BibTeX' /tmp/prod-detail.html
+
+          MAP_PROFILE=/tmp/research-os-prod-map
+          rm -rf "$MAP_PROFILE"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$MAP_PROFILE" --virtual-time-budget=36000 \
+            --dump-dom "${PAGE_URL}?q=${QUERY}&view=map&prod=${REVISION}-map" >/tmp/prod-map.html 2>/tmp/prod-map.log
+          MAP_NODES=$( (grep -o 'research-map-node' /tmp/prod-map.html || true) | wc -l | tr -d ' ' )
+          MAP_CLUSTERS=$( (grep -o 'research-map-cluster-label' /tmp/prod-map.html || true) | wc -l | tr -d ' ' )
+          echo "Production map: nodes=$MAP_NODES clusters=$MAP_CLUSTERS"
+          test "$MAP_NODES" -ge 8
+          test "$MAP_CLUSTERS" -ge 2
+          grep -q '不代表真实引用、合作或语义向量距离' /tmp/prod-map.html
+
+          for VIEW in timeline entities path; do
+            PROFILE="/tmp/research-os-prod-${VIEW}"
+            rm -rf "$PROFILE"
+            "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$PROFILE" --virtual-time-budget=36000 \
+              --dump-dom "${PAGE_URL}?q=${QUERY}&view=${VIEW}&prod=${REVISION}-${VIEW}" >"/tmp/prod-${VIEW}.html" 2>"/tmp/prod-${VIEW}.log"
+          done
+          YEAR_COLS=$( (grep -o 'research-year-column' /tmp/prod-timeline.html || true) | wc -l | tr -d ' ' )
+          ENTITY_ROWS=$( (grep -o 'research-entity-row' /tmp/prod-entities.html || true) | wc -l | tr -d ' ' )
+          PATH_NODES=$( (grep -o 'research-path-node' /tmp/prod-path.html || true) | wc -l | tr -d ' ' )
+          test "$YEAR_COLS" -ge 3
+          test "$ENTITY_ROWS" -ge 3
+          test "$PATH_NODES" -ge 4
+          grep -q 'PEAK DENSITY' /tmp/prod-timeline.html
+          grep -q 'VENUES &amp; DOMAINS' /tmp/prod-entities.html
+          grep -q '不能据此推断专利空白' /tmp/prod-path.html
+          grep -q '不代表引用、专利族、技术转让' /tmp/prod-path.html
+
+          if grep -q '&amp;amp;' /tmp/prod-detail.html; then
             echo 'Double-escaped scholarly metadata detected in production.'
             exit 1
           fi
 
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=30000 \
-            --window-size=1440,1200 --screenshot=/tmp/research-prod-desktop.png \
-            "${PAGE_URL}?q=${QUERY}&screenshot=${REVISION}" >/tmp/prod-shot-desktop.log 2>&1
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=30000 \
-            --window-size=430,932 --screenshot=/tmp/research-prod-mobile.png \
-            "${PAGE_URL}?q=${QUERY}&screenshot=${REVISION}-mobile" >/tmp/prod-shot-mobile.log 2>&1
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=32000 \
-            --window-size=1440,1200 --screenshot=/tmp/research-prod-detail.png \
-            "${PAGE_URL}?q=${QUERY}&detail=first&screenshot=${REVISION}-detail" >/tmp/prod-shot-detail.log 2>&1
-          test -s /tmp/research-prod-desktop.png
-          test -s /tmp/research-prod-mobile.png
-          test -s /tmp/research-prod-detail.png
-          echo 'Production v14 research signal workflow rendered successfully.'
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=36000 --window-size=1440,1200 \
+            --screenshot=/tmp/research-os-prod-map.png "${PAGE_URL}?q=${QUERY}&view=map&screenshot=${REVISION}-map" >/tmp/prod-shot-map.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=36000 --window-size=1440,1200 \
+            --screenshot=/tmp/research-os-prod-timeline.png "${PAGE_URL}?q=${QUERY}&view=timeline&screenshot=${REVISION}-timeline" >/tmp/prod-shot-timeline.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=36000 --window-size=1440,1200 \
+            --screenshot=/tmp/research-os-prod-path.png "${PAGE_URL}?q=${QUERY}&view=path&screenshot=${REVISION}-path" >/tmp/prod-shot-path.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=36000 --window-size=430,932 \
+            --screenshot=/tmp/research-os-prod-mobile.png "${PAGE_URL}?q=${QUERY}&screenshot=${REVISION}-mobile" >/tmp/prod-shot-mobile.log 2>&1
+          test -s /tmp/research-os-prod-map.png
+          test -s /tmp/research-os-prod-timeline.png
+          test -s /tmp/research-os-prod-path.png
+          test -s /tmp/research-os-prod-mobile.png
+          echo 'Production Research OS v15 workflow rendered successfully.'
 
-      - name: Upload UI screenshots
+      - name: Upload Research OS screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: research-ui-v14
+          name: research-ui-v15
           path: |
-            /tmp/research-prod-desktop.png
-            /tmp/research-prod-mobile.png
-            /tmp/research-prod-detail.png
+            /tmp/research-os-prod-map.png
+            /tmp/research-os-prod-timeline.png
+            /tmp/research-os-prod-path.png
+            /tmp/research-os-prod-mobile.png
           if-no-files-found: error
           retention-days: 3

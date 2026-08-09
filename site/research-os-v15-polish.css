@@ -1,0 +1,43 @@
+/* v15 control normalization after visual Chromium review. */
+.research-year-column{
+  border:0!important;
+  background:transparent!important;
+  padding:0!important;
+  appearance:none;
+  color:inherit;
+  font:inherit;
+  box-shadow:none!important;
+}
+.research-year-column:focus-visible{outline:1px solid #9bb1cc;outline-offset:2px;border-radius:4px}
+
+.research-path-item{
+  width:100%;
+  border:0!important;
+  background:transparent!important;
+  appearance:none;
+  color:inherit;
+  font:inherit;
+  text-align:left;
+  box-shadow:none!important;
+}
+.research-path-item:focus-visible{outline:1px solid #9bb1cc;outline-offset:-2px}
+
+.research-entity-row{
+  width:100%;
+  border:0!important;
+  border-bottom:1px solid #edf0f3!important;
+  background:transparent!important;
+  appearance:none;
+  color:inherit;
+  font:inherit;
+  text-align:left;
+  box-shadow:none!important;
+}
+.research-entity-row:last-child{border-bottom:0!important}
+.research-entity-row:focus-visible{outline:1px solid #9bb1cc;outline-offset:-2px}
+
+.research-map-cluster-list button,
+.research-evidence-add{
+  appearance:none;
+  font:inherit;
+}
