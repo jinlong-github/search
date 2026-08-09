@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#172033" />
-  <meta name="description" content="Research OS：论文、专利、技术文章与工程资料的科研情报工作台" />
+  <meta name="description" content="科研情报系统：论文、专利、技术文章与工程资料的一体化技术研究工作台" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.crossref.org https://api.openalex.org https://hn.algolia.com https://search.patentsview.org https://*.workers.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
-  <title>Research OS · Technology Intelligence</title>
+  <title>科研情报系统 · 技术研究工作台</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./styles.css?v=13" />
@@ -20,12 +20,13 @@
   <link rel="stylesheet" href="./research-v14.css?v=14" />
   <link rel="stylesheet" href="./research-os-v15.css?v=15" />
   <link rel="stylesheet" href="./research-os-v15-polish.css?v=15" />
+  <link rel="stylesheet" href="./research-os-v16.css?v=16" />
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="./" aria-label="Research OS 首页">
-      <span class="brand-mark" aria-hidden="true"><span>R</span><i></i></span>
-      <span class="brand-copy"><strong>Research OS</strong><small>INTELLIGENCE OPERATING SYSTEM</small></span>
+    <a class="brand" href="./" aria-label="科研情报系统首页">
+      <span class="brand-mark" aria-hidden="true"><span>研</span><i></i></span>
+      <span class="brand-copy"><strong>科研情报系统</strong><small>科研情报操作系统</small></span>
     </a>
     <div class="top-actions">
       <button id="densityToggle" class="ghost-btn density-btn" type="button" aria-pressed="false">紧凑视图</button>
@@ -38,18 +39,18 @@
   <main class="shell">
     <section class="hero">
       <h1>研究一个技术，而不只是搜索它</h1>
-      <p class="subtitle">从论文、专利和工程信号进入同一研究会话：检索、聚类、时间演进、实体情报、证据研判与技术脉络连续工作。</p>
+      <p class="subtitle">把论文、专利、技术文章与工程信号放进同一研究会话：检索、聚类、时间演进、实体情报、证据研判与技术脉络连续工作。</p>
       <form id="searchForm" class="search-box">
         <label class="sr-only" for="queryInput">搜索关键词</label>
         <span class="search-icon" aria-hidden="true">⌕</span>
-        <input id="queryInput" name="q" type="search" autocomplete="off" placeholder="技术问题、方法、作者、公司、专利或工程路径…" />
+        <input id="queryInput" name="q" type="search" autocomplete="off" placeholder="输入技术问题、方法、作者、机构、专利或工程路径…" />
         <kbd>/</kbd>
         <button class="search-btn" type="submit">开始研究</button>
       </form>
       <div class="quick-queries" aria-label="快速搜索">
-        <button type="button" data-query="B-Rep reconstruction CAD">B-Rep reconstruction</button>
-        <button type="button" data-query="engineering drawing 3D reconstruction">2D → 3D CAD</button>
-        <button type="button" data-query="multimodal foundation model robotics">Robot foundation models</button>
+        <button type="button" data-query="B-Rep reconstruction CAD">B-Rep 三维重建</button>
+        <button type="button" data-query="engineering drawing 3D reconstruction">工程图 → 三维 CAD</button>
+        <button type="button" data-query="multimodal foundation model robotics">机器人多模态基础模型</button>
       </div>
     </section>
 
@@ -59,17 +60,17 @@
         <button class="tab" data-tab="papers" type="button">论文 <span id="paperCount" class="count"></span></button>
         <button class="tab" data-tab="patents" type="button">专利 <span id="patentCount" class="count"></span></button>
         <button class="tab" data-tab="blogs" type="button">技术文章 <span id="blogCount" class="count"></span></button>
-        <button class="tab" data-tab="web" type="button">Web <span id="webCount" class="count"></span></button>
+        <button class="tab" data-tab="web" type="button">网页 <span id="webCount" class="count"></span></button>
         <button class="tab" data-tab="saved" type="button">收藏 <span id="savedCount" class="count"></span></button>
       </nav>
 
       <div class="content-grid">
         <aside class="filters" aria-label="搜索筛选">
           <div class="filter-block">
-            <label for="sortSelect">排序</label>
+            <label for="sortSelect">排序方式</label>
             <select id="sortSelect">
               <option value="relevance">相关度</option>
-              <option value="cited">引用/影响力</option>
+              <option value="cited">引用 / 影响力</option>
               <option value="newest">最新</option>
             </select>
           </div>
@@ -77,13 +78,13 @@
             <label for="fromYear">起始年份</label>
             <input id="fromYear" type="number" min="1900" max="2100" placeholder="起始年份" />
           </div>
-          <label class="check-row"><input id="oaOnly" type="checkbox" /><span>开放获取</span></label>
-          <label class="check-row"><input id="officialOnly" type="checkbox" /><span>仅官网</span></label>
+          <label class="check-row"><input id="oaOnly" type="checkbox" /><span>仅开放获取</span></label>
+          <label class="check-row"><input id="officialOnly" type="checkbox" /><span>仅官方网站</span></label>
           <button id="applyFilters" class="secondary-btn" type="button">应用筛选</button>
           <div class="source-note sr-only">
             <span id="paperSourceLabel">论文 · Crossref</span>
-            <span id="patentSourceLabel">专利 · 专业库入口</span>
-            <span id="webSourceLabel">Web · 外部搜索入口</span>
+            <span id="patentSourceLabel">专利 · 专业数据库入口</span>
+            <span id="webSourceLabel">网页 · 外部搜索入口</span>
           </div>
         </aside>
 
@@ -102,22 +103,22 @@
   </main>
 
   <dialog id="settingsDialog">
-    <div class="dialog-head"><div><p class="dialog-kicker">DATA SOURCE</p><h2>数据源设置</h2></div><button id="closeSettings" class="icon-btn" type="button" aria-label="关闭">×</button></div>
+    <div class="dialog-head"><div><p class="dialog-kicker">数据源</p><h2>数据源设置</h2></div><button id="closeSettings" class="icon-btn" type="button" aria-label="关闭">×</button></div>
     <div class="settings-section web-settings-section">
-      <label for="workerEndpoint">Cloudflare Worker 地址</label>
+      <label for="workerEndpoint">后端代理（Cloudflare Worker）地址</label>
       <input id="workerEndpoint" class="settings-input" type="url" autocomplete="off" placeholder="https://research-search-api.xxx.workers.dev" />
-      <p>配置后，官网 / Web 结果会直接显示在本站；若 Worker 同时配置 PatentsView Key，专利也会优先走后端代理。</p>
-      <div class="settings-inline-actions"><button id="testWorker" class="ghost-btn compact" type="button">测试连接</button><button id="clearWorker" class="ghost-btn compact" type="button">清除 Worker</button></div>
+      <p>配置后，官网和网页结果会直接显示在本站；若后端同时配置 PatentsView 密钥，专利也会优先通过后端代理访问。</p>
+      <div class="settings-inline-actions"><button id="testWorker" class="ghost-btn compact" type="button">测试连接</button><button id="clearWorker" class="ghost-btn compact" type="button">清除后端地址</button></div>
       <div id="workerStatus" class="key-status"></div>
     </div>
     <div class="settings-section">
-      <label for="patentApiKey">PatentsView API Key</label>
+      <label for="patentApiKey">PatentsView 接口密钥</label>
       <input id="patentApiKey" class="settings-input" type="password" autocomplete="off" placeholder="输入 X-Api-Key（可选）" />
-      <p>配置后专利会直接显示在搜索结果中。Key 只保存在你的浏览器。</p>
+      <p>配置后专利会直接显示在搜索结果中。密钥只保存在你的浏览器。</p>
       <label class="check-row settings-check"><input id="rememberPatentKey" type="checkbox" /><span>记住在这台设备上</span></label>
       <div id="patentKeyStatus" class="key-status"></div>
     </div>
-    <div class="dialog-actions"><button id="clearPatentKey" class="danger-btn" type="button">清除 Key</button><button id="saveSettings" class="secondary-btn fit" type="button">保存设置</button></div>
+    <div class="dialog-actions"><button id="clearPatentKey" class="danger-btn" type="button">清除密钥</button><button id="saveSettings" class="secondary-btn fit" type="button">保存设置</button></div>
   </dialog>
 
   <dialog id="historyDialog">
@@ -126,7 +127,7 @@
     <button id="clearHistory" class="danger-btn" type="button">清空历史</button>
   </dialog>
 
-  <footer><span>Research OS</span><a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a></footer>
+  <footer><span>科研情报系统</span><a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a></footer>
 
   <script src="./bootstrap.js?v=13" defer></script>
   <script src="./app.js?v=13" defer></script>
@@ -142,5 +143,6 @@
   <script src="./research-os-v15.js?v=15" defer></script>
   <script src="./research-os-v15-map.js?v=15" defer></script>
   <script src="./research-os-v15-style.js?v=15" defer></script>
+  <script src="./research-os-v16-zh.js?v=16" defer></script>
 </body>
 </html>

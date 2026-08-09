@@ -48,18 +48,23 @@ jobs:
           node --check site/research-os-v15.js
           node --check site/research-os-v15-map.js
           node --check site/research-os-v15-style.js
+          node --check site/research-os-v16-zh.js
           node --check worker/src/index.js
           test -s site/research-v13.css
           test -s site/research-v14.css
           test -s site/research-os-v15.css
           test -s site/research-os-v15-polish.css
-          grep -q 'Research OS' site/index.html
+          test -s site/research-os-v16.css
+          grep -q '科研情报系统' site/index.html
+          grep -q '科研情报操作系统' site/index.html
           grep -q 'research-v14.js?v=14.1' site/index.html
           grep -q 'research-os-v15.css?v=15' site/index.html
           grep -q 'research-os-v15-polish.css?v=15' site/index.html
           grep -q 'research-os-v15.js?v=15' site/index.html
           grep -q 'research-os-v15-map.js?v=15' site/index.html
           grep -q 'research-os-v15-style.js?v=15' site/index.html
+          grep -q 'research-os-v16.css?v=16' site/index.html
+          grep -q 'research-os-v16-zh.js?v=16' site/index.html
           grep -q "style-src 'self'" site/index.html
           grep -q 'if (node.textContent !== next)' site/research-os-v15.js
 
@@ -98,6 +103,14 @@ jobs:
           grep -q 'id="researchOsStatusbar"' /tmp/local-general.html
           grep -q 'id="researchCommandPalette"' /tmp/local-general.html
           grep -q 'research-live-scan' /tmp/local-general.html
+          grep -q '科研情报系统' /tmp/local-general.html
+          grep -q '科研情报操作系统' /tmp/local-general.html
+          grep -q '研究会话' /tmp/local-general.html
+          grep -q '条结果' /tmp/local-general.html
+          if grep -q '>SESSION<' /tmp/local-general.html; then
+            echo 'Untranslated SESSION detected locally.'
+            exit 1
+          fi
 
           "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=34000 \
             --dump-dom "http://127.0.0.1:8000/?q=${QUERY}&detail=first" >/tmp/local-detail.html 2>/tmp/local-detail.log
@@ -120,13 +133,17 @@ jobs:
           echo "Local map: nodes=$MAP_NODES clusters=$MAP_CLUSTERS"
           test "$MAP_NODES" -ge 8
           test "$MAP_CLUSTERS" -ge 2
+          grep -q '研究地图' /tmp/local-map.html
           grep -q '不代表真实引用、合作或语义向量距离' /tmp/local-map.html
 
           "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=34000 \
             --dump-dom "http://127.0.0.1:8000/?q=${QUERY}&view=timeline" >/tmp/local-timeline.html 2>/tmp/local-timeline.log
           YEAR_COLS=$( (grep -o 'research-year-column' /tmp/local-timeline.html || true) | wc -l | tr -d ' ' )
           test "$YEAR_COLS" -ge 3
-          grep -q 'PEAK DENSITY' /tmp/local-timeline.html
+          grep -q '时间演进' /tmp/local-timeline.html
+          grep -q '最早信号' /tmp/local-timeline.html
+          grep -q '密度峰值' /tmp/local-timeline.html
+          grep -q '最新信号' /tmp/local-timeline.html
 
           "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=34000 \
             --dump-dom "http://127.0.0.1:8000/?q=${QUERY}&view=entities" >/tmp/local-entities.html 2>/tmp/local-entities.log
@@ -134,13 +151,18 @@ jobs:
           ENTITY_ROWS=$( (grep -o 'research-entity-row' /tmp/local-entities.html || true) | wc -l | tr -d ' ' )
           test "$ENTITY_PANELS" -ge 3
           test "$ENTITY_ROWS" -ge 3
-          grep -q 'VENUES &amp; DOMAINS' /tmp/local-entities.html
+          grep -q '实体情报' /tmp/local-entities.html
+          grep -q '>作者<' /tmp/local-entities.html
+          grep -q '来源与域名' /tmp/local-entities.html
 
           "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=34000 \
             --dump-dom "http://127.0.0.1:8000/?q=${QUERY}&view=path" >/tmp/local-path.html 2>/tmp/local-path.log
           PATH_NODES=$( (grep -o 'research-path-node' /tmp/local-path.html || true) | wc -l | tr -d ' ' )
           test "$PATH_NODES" -ge 4
-          grep -q 'Query → Research → IP → Engineering' /tmp/local-path.html
+          grep -q '检索问题' /tmp/local-path.html
+          grep -q '学术研究' /tmp/local-path.html
+          grep -q '知识产权' /tmp/local-path.html
+          grep -q '工程落地' /tmp/local-path.html
           grep -q '不能据此推断专利空白' /tmp/local-path.html
           grep -q '不代表引用、专利族、技术转让' /tmp/local-path.html
 
@@ -180,19 +202,22 @@ jobs:
           SOURCE_QUERY='machine%20learning'
           QUERY='engineering%20drawing%203D%20reconstruction'
 
-          echo "Testing deployed Research OS: $PAGE_URL"
+          echo "Testing deployed Chinese Research OS: $PAGE_URL"
           for i in $(seq 1 12); do
             if curl -fsSL --retry 2 --max-time 15 "${PAGE_URL}?health=${REVISION}" >/tmp/prod-index.html; then
               break
             fi
             sleep 5
           done
-          grep -q 'Research OS' /tmp/prod-index.html
+          grep -q '科研情报系统' /tmp/prod-index.html
+          grep -q '科研情报操作系统' /tmp/prod-index.html
           grep -q 'research-os-v15.css?v=15' /tmp/prod-index.html
           grep -q 'research-os-v15-polish.css?v=15' /tmp/prod-index.html
           grep -q 'research-os-v15.js?v=15' /tmp/prod-index.html
           grep -q 'research-os-v15-map.js?v=15' /tmp/prod-index.html
           grep -q 'research-os-v15-style.js?v=15' /tmp/prod-index.html
+          grep -q 'research-os-v16.css?v=16' /tmp/prod-index.html
+          grep -q 'research-os-v16-zh.js?v=16' /tmp/prod-index.html
 
           PROFILE=/tmp/research-os-prod-source
           rm -rf "$PROFILE"
@@ -210,6 +235,13 @@ jobs:
           test "$EVIDENCE_COUNT" -ge "$EXPECTED"
           grep -q 'id="researchOsRail"' /tmp/prod-general.html
           grep -q 'id="researchOsStatusbar"' /tmp/prod-general.html
+          grep -q '科研情报系统' /tmp/prod-general.html
+          grep -q '研究会话' /tmp/prod-general.html
+          grep -q '条结果' /tmp/prod-general.html
+          if grep -q '>SESSION<' /tmp/prod-general.html; then
+            echo 'Untranslated SESSION detected in production.'
+            exit 1
+          fi
 
           DETAIL_PROFILE=/tmp/research-os-prod-detail
           rm -rf "$DETAIL_PROFILE"
@@ -232,6 +264,8 @@ jobs:
           echo "Production map: nodes=$MAP_NODES clusters=$MAP_CLUSTERS"
           test "$MAP_NODES" -ge 8
           test "$MAP_CLUSTERS" -ge 2
+          grep -q '研究地图' /tmp/prod-map.html
+          grep -q '核心 · 高信号\|主题簇' /tmp/prod-map.html
           grep -q '不代表真实引用、合作或语义向量距离' /tmp/prod-map.html
 
           for VIEW in timeline entities path; do
@@ -246,8 +280,15 @@ jobs:
           test "$YEAR_COLS" -ge 3
           test "$ENTITY_ROWS" -ge 3
           test "$PATH_NODES" -ge 4
-          grep -q 'PEAK DENSITY' /tmp/prod-timeline.html
-          grep -q 'VENUES &amp; DOMAINS' /tmp/prod-entities.html
+          grep -q '最早信号' /tmp/prod-timeline.html
+          grep -q '密度峰值' /tmp/prod-timeline.html
+          grep -q '最新信号' /tmp/prod-timeline.html
+          grep -q '>作者<' /tmp/prod-entities.html
+          grep -q '来源与域名' /tmp/prod-entities.html
+          grep -q '检索问题' /tmp/prod-path.html
+          grep -q '学术研究' /tmp/prod-path.html
+          grep -q '知识产权' /tmp/prod-path.html
+          grep -q '工程落地' /tmp/prod-path.html
           grep -q '不能据此推断专利空白' /tmp/prod-path.html
           grep -q '不代表引用、专利族、技术转让' /tmp/prod-path.html
 
@@ -268,12 +309,12 @@ jobs:
           test -s /tmp/research-os-prod-timeline.png
           test -s /tmp/research-os-prod-path.png
           test -s /tmp/research-os-prod-mobile.png
-          echo 'Production Research OS v15 workflow rendered successfully.'
+          echo 'Production Chinese Research OS v16 workflow rendered successfully.'
 
       - name: Upload Research OS screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: research-ui-v15
+          name: research-ui-v16-zh
           path: |
             /tmp/research-os-prod-map.png
             /tmp/research-os-prod-timeline.png
