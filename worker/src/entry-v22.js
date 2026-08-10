@@ -1,4 +1,4 @@
-import worker from './index-v22.js';
+import worker from './index-v24.js';
 
 function cors(request, env) {
   const origin=request.headers.get('Origin')||'';
@@ -15,6 +15,7 @@ function cors(request, env) {
 
 export default {
   async fetch(request,env,ctx){
+    if(request.method==='OPTIONS') return new Response(null,{status:204,headers:cors(request,env)});
     const response=await worker.fetch(request,env,ctx);
     const headers=new Headers(response.headers);
     Object.entries(cors(request,env)).forEach(([name,value])=>headers.set(name,value));

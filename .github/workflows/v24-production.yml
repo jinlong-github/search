@@ -1,0 +1,118 @@
+name: V24 Research Copilot Production Guard
+
+on:
+  workflow_run:
+    workflows: ["Deploy GitHub Pages"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Static v24 checks
+        run: |
+          node --check site/project-copilot-v24.js
+          node --check site/project-ai-v22.js
+          node --check worker/src/index-v24.js
+          node --check worker/src/entry-v22.js
+          test -s site/project-copilot-v24.css
+          grep -q 'project-copilot-v24.js?v=24' site/project-ai-v22.js
+          grep -q 'project-copilot-v24.css?v=24' site/project-ai-v22.js
+          grep -q "import worker from './index-v24.js'" worker/src/entry-v22.js
+          grep -q '"main": "src/entry-v22.js"' worker/wrangler.jsonc
+          grep -q '/api/ai/research' worker/src/index-v24.js
+          grep -q '当前项目证据中未发现明确反证' worker/src/index-v24.js
+          grep -q 'Research Copilot' README.md
+
+      - name: Mock grounded research actions
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import worker from './worker/src/entry-v22.js';
+          const profiles=[{id:'alpha',name:'Alpha Research',provider:'Alpha',baseUrl:'https://alpha.example/v1',mode:'responses',path:'/responses',model:'alpha-model',keyBinding:'AI_KEY_ALPHA',authHeader:'Authorization',authPrefix:'Bearer ',allowedModels:['alpha-model'],allowModelOverride:true,allowPromptOverride:true,inputUsdPer1M:2,outputUsdPer1M:8}];
+          const env={ALLOWED_ORIGINS:'https://jinlong-github.github.io,http://localhost:8000',AI_PROFILES_JSON:JSON.stringify(profiles),AI_DEFAULT_PROFILE:'alpha',AI_ALLOW_PROFILE_OVERRIDE:'true',AI_KEY_ALPHA:'alpha-secret'};
+          const calls=[];
+          globalThis.fetch=async(url,options={})=>{
+            const body=JSON.parse(options.body||'{}');calls.push({url:String(url),body,headers:options.headers||{}});
+            const action=body.input?.includes('当前动作：反证发现')?'counter':body.input?.includes('当前动作：阶段结论审查')?'claims':'other';
+            const result=action==='counter'
+              ? {headline:'当前没有明确反证',summary:'当前项目证据中未发现明确反证。',signals:[{label:'缺口',text:'需要主动搜索失败边界。',evidence_keys:[]}],queries:['failure boundary reconstruction'],tasks:['补查失败案例'],claim_reviews:[]}
+              : {headline:'结论证据不足',summary:'现有材料不足以支持生产可用性结论。',signals:[{label:'支持',text:'存在部分方法证据。',evidence_keys:['paper:1']}],queries:[],tasks:['补充工程验证'],claim_reviews:[{claim_id:'claim:1',status:'insufficient',reason:'只有单一来源。',evidence_keys:['paper:1','fake:key']}]};
+            return new Response(JSON.stringify({output:[{content:[{type:'output_text',text:JSON.stringify(result)}]}],usage:{input_tokens:1000,output_tokens:250,total_tokens:1250}}),{status:200,headers:{'Content-Type':'application/json'}});
+          };
+          const project={name:'Test',question:'Can this work?',evidence:[{key:'paper:1',lane:'support',type:'paper',title:'Paper 1',summary:'Relevant source evidence'}],claims:[{id:'claim:1',state:'open',text:'Method is production ready'}]};
+          for(const action of ['counter','claims']){
+            const req=new Request('https://worker.test/api/ai/research',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://jinlong-github.github.io'},body:JSON.stringify({action,profile:'alpha',project})});
+            const res=await worker.fetch(req,env);const data=await res.json();if(!res.ok)throw new Error(`${action}: ${JSON.stringify(data)}`);
+            if(data.profile!=='alpha'||data.model!=='alpha-model')throw new Error(`${action}: routing failed`);
+            if(action==='counter'&&!data.result?.summary?.includes('未发现明确反证'))throw new Error('counter boundary missing');
+            if(action==='claims'&&data.result?.claim_reviews?.[0]?.evidence_keys?.includes('fake:key'))throw new Error('fake evidence key survived sanitization');
+          }
+          if(calls.some(call=>call.headers.Authorization!=='Bearer alpha-secret'))throw new Error('profile auth failed');
+          console.log('v24 grounded counter + claim review mock passed');
+          NODE
+
+      - name: Install CJK fonts
+        run: |
+          if ! fc-list :lang=zh | grep -q .; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+            fc-cache -f
+          fi
+
+      - name: Verify deployed project copilot UI
+        env:
+          REVISION: ${{ github.event.workflow_run.head_sha }}
+          PAGE_URL: https://jinlong-github.github.io/search/
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          for i in $(seq 1 12); do
+            if curl -fsSL --retry 2 --max-time 15 "${PAGE_URL}project-ai-v22.js?v24-health=${REVISION}" >/tmp/v24-loader.js; then break; fi
+            sleep 5
+          done
+          grep -q 'project-copilot-v24.js?v=24' /tmp/v24-loader.js
+          grep -q 'project-copilot-v24.css?v=24' /tmp/v24-loader.js
+
+          DESKTOP=/tmp/v24-prod-desktop-profile
+          MOBILE=/tmp/v24-prod-mobile-profile
+          rm -rf "$DESKTOP" "$MOBILE"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$DESKTOP" --window-size=1440,1400 --virtual-time-budget=11000 \
+            --dump-dom "${PAGE_URL}?project=new&v24=${REVISION}" >/tmp/v24-prod.html 2>/tmp/v24-prod.log
+          grep -q 'Research Copilot' /tmp/v24-prod.html
+          grep -q '让当前项目的证据驱动下一步研究' /tmp/v24-prod.html
+          grep -q 'data-v24-action="evidence"' /tmp/v24-prod.html
+          grep -q 'data-v24-action="counter"' /tmp/v24-prod.html
+          grep -q 'data-v24-action="queries"' /tmp/v24-prod.html
+          grep -q 'data-v24-action="claims"' /tmp/v24-prod.html
+          grep -q 'data-v24-provider-badge' /tmp/v24-prod.html
+          grep -q '只基于项目内材料分析' /tmp/v24-prod.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$DESKTOP" --hide-scrollbars --window-size=1440,1400 --virtual-time-budget=10000 \
+            --screenshot=/tmp/v24-prod-desktop.png "${PAGE_URL}?project=new&shot=${REVISION}" >/tmp/v24-prod-shot.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$MOBILE" --hide-scrollbars --window-size=430,1300 --virtual-time-budget=10000 \
+            --screenshot=/tmp/v24-prod-mobile.png "${PAGE_URL}?project=new&shot-mobile=${REVISION}" >/tmp/v24-prod-mobile.log 2>&1
+          test -s /tmp/v24-prod-desktop.png
+          test -s /tmp/v24-prod-mobile.png
+
+      - name: Upload v24 production screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-ui-v24-copilot
+          path: |
+            /tmp/v24-prod-desktop.png
+            /tmp/v24-prod-mobile.png
+            /tmp/v24-prod.html
+          if-no-files-found: error
+          retention-days: 3

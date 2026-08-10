@@ -8,6 +8,10 @@
   const dialog=document.querySelector('#projectWorkspaceDialog');
   if(!dialog)return;
 
+  function loadCopilot(){
+    if(!document.querySelector('link[data-project-v24]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./project-copilot-v24.css?v=24';link.dataset.projectV24='';document.head.appendChild(link)}
+    if(!document.querySelector('script[data-project-v24]')){const script=document.createElement('script');script.src='./project-copilot-v24.js?v=24';script.defer=true;script.dataset.projectV24='';document.body.appendChild(script)}
+  }
   function active(){return projectApi()?.activeProject?.()||null}
   function esc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
   function profileOptions(current=''){
@@ -60,5 +64,6 @@
   window.addEventListener('research-project-changed',refresh);
   window.addEventListener('research-project-updated',refresh);
   window.addEventListener('research-provider-profiles-changed',()=>setTimeout(inject,0));
+  loadCopilot();
   [120,420,1000].forEach(delay=>setTimeout(refresh,delay));
 })();

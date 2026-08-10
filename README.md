@@ -11,6 +11,7 @@ https://jinlong-github.github.io/search/
 - **统一检索**：Crossref 论文、HN Algolia 技术文章，可选 PatentsView 专利和 Brave Web 搜索。
 - **研究视图**：研究地图、时间演进、实体情报、证据板、技术脉络。
 - **研究项目**：保存研究问题、检索轨迹、项目资料、证据、阶段结论和下一步任务。
+- **Research Copilot**：基于项目已有证据做证据分析、反证检查、下一轮检索和阶段结论审查；缺证据时必须明确标记不足。
 - **AI 摘要**：默认保留本地中文摘要；配置 Worker 后可使用服务端 AI 增强。
 - **Provider Profiles**：一个 Worker 可连接多套 AI 服务；项目可绑定不同 Provider、模型和提示词。
 - **控制中心**：查看数据源延迟、AI Token、缓存和本机运行诊断。
@@ -31,6 +32,7 @@ python -m http.server 8000 -d site
 - PatentsView 专利代理
 - AI 中文摘要
 - 多 AI Provider Profile 路由
+- Research Copilot 项目分析（`POST /api/ai/research`）
 
 最小部署：
 
@@ -44,13 +46,7 @@ npm run deploy
 
 部署后，把 `https://...workers.dev` 填入网站 **配置 → 服务地址**。
 
-AI、多 Provider、模型、提示词和 Secret 的配置见：
-
-**`worker/AI_PROVIDER_CONFIG.md`**
-
-Worker 接口与部署说明见：
-
-**`worker/README.md`**
+AI、多 Provider、模型、提示词和 Secret 的配置见 **`worker/AI_PROVIDER_CONFIG.md`**；Worker 接口与部署说明见 **`worker/README.md`**。
 
 ## 安全边界
 
@@ -58,7 +54,8 @@ Worker 接口与部署说明见：
 - AI Key、Brave Key、PatentsView Key 推荐只放 Worker Secret。
 - 浏览器只保存 Worker 地址、Provider ID、模型/提示词覆盖和项目数据。
 - Provider Profile 的公开 JSON 不包含真实 API Key。
-- AI 生成内容不能替代原始论文、专利或网页证据；系统固定保留“不编造关系与数据”的约束。
+- Copilot 只能把项目输入视为已知证据；建议检索式和建议任务不等于已经存在的事实。
+- AI 输出不能替代原始论文、专利或网页证据。
 
 ## 数据源
 
