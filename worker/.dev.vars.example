@@ -2,7 +2,18 @@ BRAVE_SEARCH_API_KEY=replace_me
 # Optional: enables patent proxy
 PATENTSVIEW_API_KEY=replace_me_if_available
 
-# AI provider (server-side only)
+# Research OS v22: optional multi-provider profiles.
+# When AI_PROFILES_JSON is configured, /api/ai/summaries routes through these server-side profiles.
+# Browser/project requests only send the profile id; URLs and keys remain server-side.
+# AI_DEFAULT_PROFILE=openai
+# AI_ALLOW_PROFILE_OVERRIDE=true
+# AI_PROFILES_JSON=[{"id":"openai","name":"OpenAI","provider":"OpenAI","baseUrl":"https://api.openai.com/v1","mode":"responses","path":"/responses","model":"gpt-5-mini","keyBinding":"AI_KEY_OPENAI","authHeader":"Authorization","authPrefix":"Bearer ","allowedModels":["gpt-5-mini"],"allowModelOverride":true,"allowPromptOverride":true,"defaultPrompt":""},{"id":"private","name":"Private Model","provider":"Internal","baseUrl":"https://ai.example.com/v1","mode":"chat-completions","path":"/chat/completions","model":"research-model","keyBinding":"AI_KEY_PRIVATE","authHeader":"x-api-key","authPrefix":"","allowedModels":["research-model"],"allowModelOverride":true,"allowPromptOverride":true,"defaultPrompt":""}]
+# Secrets are separate bindings and must not be written into AI_PROFILES_JSON:
+# AI_KEY_OPENAI=replace_me
+# AI_KEY_PRIVATE=replace_me
+
+# v21 / single-provider fallback (server-side only).
+# These variables continue to work when AI_PROFILES_JSON is empty.
 # Preferred generic secret name. OPENAI_API_KEY remains supported as a fallback.
 AI_API_KEY=replace_me
 # OPENAI_API_KEY=replace_me
