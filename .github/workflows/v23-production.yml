@@ -32,7 +32,7 @@ jobs:
           node --check site/settings-v18-deeplink.js
           test -s site/provider-profiles-v23.css
           grep -q 'provider-profiles-v23.js?v=23' site/settings-v18-deeplink.js
-          grep -q 'settings.*provider' site/settings-v18-deeplink.js
+          grep -q "target === 'provider'" site/settings-v18-deeplink.js
           grep -q 'Provider 模板' site/provider-profiles-v23.js
           grep -q '本地草稿 vs Worker 已部署' site/provider-profiles-v23.js
           grep -q '测试当前 Profile' site/provider-profiles-v23.js
