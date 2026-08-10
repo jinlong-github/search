@@ -17,3 +17,5 @@ AI_KEY_OPENAI=replace_me
 # AI_API_MODE=responses
 # AI_API_PATH=/responses
 # AI_MODEL=gpt-5-mini
+# OPENAI_INPUT_USD_PER_1M=   # legacy cost alias
+# OPENAI_OUTPUT_USD_PER_1M=  # legacy cost alias
