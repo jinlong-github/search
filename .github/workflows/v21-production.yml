@@ -1,0 +1,108 @@
+name: V21 AI Provider Production Guard
+
+on:
+  workflow_run:
+    workflows: ["Deploy GitHub Pages"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install CJK fonts
+        run: |
+          if ! fc-list :lang=zh | grep -q .; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+            fc-cache -f
+          fi
+
+      - name: Static v21 AI checks
+        run: |
+          node --check worker/src/index.js
+          node --check site/ai-provider-v21.js
+          node --check site/ai-provider-v21-compat.js
+          node --check site/ai-v18.js
+          node --check site/project-ai-v21.js
+          grep -q 'ai-provider-v21.css?v=21' site/index.html
+          grep -q 'ai-provider-v21.js?v=21' site/index.html
+          grep -q 'ai-provider-v21-compat.js?v=21' site/index.html
+          grep -q 'project-ai-v21.js?v=21' site/index.html
+          grep -q 'AI_BASE_URL' worker/.dev.vars.example
+          grep -q 'AI_API_MODE' worker/.dev.vars.example
+          grep -q 'AI_ALLOWED_MODELS' worker/.dev.vars.example
+          if grep -Eq 'localStorage\.(setItem|set).*AI_API_KEY|AI_API_KEY.*localStorage' site/*.js; then
+            echo 'AI API key must remain server-side.'
+            exit 1
+          fi
+
+      - name: Verify deployed configurable AI UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAGE_URL='https://jinlong-github.github.io/search/'
+          REVISION='${{ github.event.workflow_run.head_sha }}'
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+
+          for i in $(seq 1 12); do
+            if curl -fsSL --retry 2 --max-time 15 "${PAGE_URL}?v21=${REVISION}" >/tmp/v21-index.html; then break; fi
+            sleep 5
+          done
+          grep -q 'ai-provider-v21.css?v=21' /tmp/v21-index.html
+          grep -q 'ai-provider-v21.js?v=21' /tmp/v21-index.html
+          grep -q 'project-ai-v21.js?v=21' /tmp/v21-index.html
+
+          SETTINGS_PROFILE=/tmp/v21-prod-settings
+          rm -rf "$SETTINGS_PROFILE"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$SETTINGS_PROFILE" --virtual-time-budget=9000 \
+            --dump-dom "${PAGE_URL}?settings=1&v21=${REVISION}-settings" >/tmp/v21-prod-settings.html 2>/tmp/v21-prod-settings.log
+          grep -q '自定义 URL、协议、模型与提示词' /tmp/v21-prod-settings.html
+          grep -q 'data-ai-v21-base' /tmp/v21-prod-settings.html
+          grep -q 'data-ai-v21-mode' /tmp/v21-prod-settings.html
+          grep -q 'data-ai-v21-default-model' /tmp/v21-prod-settings.html
+          grep -q 'data-ai-v21-prompt' /tmp/v21-prod-settings.html
+          grep -q 'AI_API_KEY' /tmp/v21-prod-settings.html
+          grep -q '网页不保存 Key' /tmp/v21-prod-settings.html
+          grep -q 'AI_BASE_URL' /tmp/v21-prod-settings.html
+          grep -q 'AI_ALLOWED_MODELS' /tmp/v21-prod-settings.html
+
+          PROJECT_PROFILE=/tmp/v21-prod-project
+          rm -rf "$PROJECT_PROFILE"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$PROJECT_PROFILE" --virtual-time-budget=10000 \
+            --dump-dom "${PAGE_URL}?project=new&v21=${REVISION}-project" >/tmp/v21-prod-project.html 2>/tmp/v21-prod-project.log
+          grep -q 'id="projectWorkspaceDialog"' /tmp/v21-prod-project.html
+          grep -q '当前项目的模型与提示词覆盖' /tmp/v21-prod-project.html
+          grep -q 'data-project-ai-model' /tmp/v21-prod-project.html
+          grep -q 'data-project-ai-prompt' /tmp/v21-prod-project.html
+          grep -q 'data-project-ai-save' /tmp/v21-prod-project.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --user-data-dir="$SETTINGS_PROFILE" --virtual-time-budget=7000 --window-size=1440,1100 \
+            --screenshot=/tmp/v21-prod-settings.png "${PAGE_URL}?settings=1&v21=${REVISION}-settings-shot" >/tmp/v21-prod-settings-shot.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --user-data-dir="$PROJECT_PROFILE" --virtual-time-budget=7000 --window-size=1440,1100 \
+            --screenshot=/tmp/v21-prod-project.png "${PAGE_URL}?project=1&v21=${REVISION}-project-shot" >/tmp/v21-prod-project-shot.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --user-data-dir="$SETTINGS_PROFILE" --virtual-time-budget=7000 --window-size=430,1000 \
+            --screenshot=/tmp/v21-prod-settings-mobile.png "${PAGE_URL}?settings=1&v21=${REVISION}-mobile" >/tmp/v21-prod-mobile.log 2>&1
+          test -s /tmp/v21-prod-settings.png
+          test -s /tmp/v21-prod-project.png
+          test -s /tmp/v21-prod-settings-mobile.png
+
+      - name: Upload v21 production screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-ui-v21-ai-provider
+          path: |
+            /tmp/v21-prod-settings.png
+            /tmp/v21-prod-project.png
+            /tmp/v21-prod-settings-mobile.png
+          if-no-files-found: error
+          retention-days: 3

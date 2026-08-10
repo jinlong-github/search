@@ -4,7 +4,7 @@
   const load=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key)||'')??fallback}catch{return fallback}};
   const save=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value))}catch{}};
   const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
-  const enrichedKeys=['status','question','description','queries','evidence','library','claims','tasks','activity','schemaVersion'];
+  const enrichedKeys=['status','question','description','queries','evidence','library','claims','tasks','activity','aiModel','aiPrompt','schemaVersion'];
   const stateSafe=()=>{try{return state}catch{return null}};
 
   function localizeWorkspace(){

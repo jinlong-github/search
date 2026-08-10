@@ -1,11 +1,41 @@
 BRAVE_SEARCH_API_KEY=replace_me
 # Optional: enables patent proxy
 PATENTSVIEW_API_KEY=replace_me_if_available
-# Optional: enables AI Chinese summary enhancement. Keep this server-side only.
-OPENAI_API_KEY=replace_me
-OPENAI_MODEL=gpt-5-mini
-# Optional: used only for local cost estimation in the control center.
-# Set these to the current model's USD price per 1M tokens; do not hard-code stale prices in the frontend.
-OPENAI_INPUT_USD_PER_1M=
-OPENAI_OUTPUT_USD_PER_1M=
+
+# AI provider (server-side only)
+# Preferred generic secret name. OPENAI_API_KEY remains supported as a fallback.
+AI_API_KEY=replace_me
+# OPENAI_API_KEY=replace_me
+
+# Upstream provider and protocol.
+AI_PROVIDER_NAME=OpenAI
+AI_BASE_URL=https://api.openai.com/v1
+# responses | chat-completions
+AI_API_MODE=responses
+# Examples: /responses or /chat/completions
+AI_API_PATH=/responses
+AI_MODEL=gpt-5-mini
+
+# Authentication header. For standard Bearer auth keep the defaults below.
+AI_AUTH_HEADER=Authorization
+AI_AUTH_PREFIX=Bearer 
+
+# Optional runtime overrides from the Research OS UI.
+# If false, the Worker always uses AI_MODEL.
+AI_ALLOW_MODEL_OVERRIDE=true
+# Optional comma-separated allowlist. Empty means any model name is accepted when override is enabled.
+AI_ALLOWED_MODELS=
+AI_ALLOW_PROMPT_OVERRIDE=true
+
+# Optional server-side default prompt. Browser/project prompts are appended after the fixed evidence rules.
+AI_DEFAULT_PROMPT=
+
+# Optional cost estimation in the control center.
+# Set these to your provider/model USD price per 1M tokens. Do not hard-code stale prices in frontend code.
+AI_INPUT_USD_PER_1M=
+AI_OUTPUT_USD_PER_1M=
+# Backward-compatible names are also supported:
+# OPENAI_INPUT_USD_PER_1M=
+# OPENAI_OUTPUT_USD_PER_1M=
+
 ALLOWED_ORIGINS=https://jinlong-github.github.io,http://localhost:8000
