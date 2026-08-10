@@ -22,23 +22,6 @@ jobs:
       - name: Full interaction audit
         run: |
           sed -i 's/#researchOsViewbar \[data-os-view=/#researchOsRail [data-os-view=/' tests/interaction-v25.js
-          python3 - <<'PY'
-          p='tests/interaction-v25.js'
-          s=open(p,encoding='utf-8').read()
-          needle="  const downloadPromise = page.waitForEvent('download');"
-          insert=r'''  console.log('EXPORT_DIAG', await page.locator('#exportBtn').evaluate(n=>{
-    const hits=[];
-    const walk=(rules,href,media='')=>{for(const rule of [...(rules||[])]){
-      if(rule.cssRules){walk(rule.cssRules,href,rule.conditionText||media);continue}
-      if(rule.selectorText&&rule.style?.display){try{if(n.matches(rule.selectorText))hits.push({href,media,selector:rule.selectorText,display:rule.style.display,important:rule.style.getPropertyPriority('display')})}catch{}}
-    }};
-    for(const sheet of [...document.styleSheets]){try{walk(sheet.cssRules,sheet.href||'inline')}catch{}}
-    return {innerWidth:innerWidth,display:getComputedStyle(n).display,visibility:getComputedStyle(n).visibility,opacity:getComputedStyle(n).opacity,rect:n.getBoundingClientRect().toJSON(),parent:getComputedStyle(n.parentElement).display,hits};
-  }));
-'''
-          s=s.replace(needle,insert+needle)
-          open(p,'w',encoding='utf-8').write(s)
-          PY
           node tests/interaction-v25.js
       - uses: actions/upload-artifact@v4
         if: always()
