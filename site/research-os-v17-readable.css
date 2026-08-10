@@ -1,0 +1,270 @@
+/* v17 · 可读性优先：完整文本、无重叠、低歧义 */
+:root{
+  --os-rail:152px;
+  --os-status:0px;
+  --readable-max:1600px;
+}
+
+html,body{overflow-x:hidden!important}
+body{padding-bottom:0!important}
+body.research-os-ready .shell{
+  width:calc(100% - var(--os-rail))!important;
+  max-width:none!important;
+  margin:0 0 0 var(--os-rail)!important;
+  padding-left:0!important;
+}
+body.research-os-ready .topbar{
+  left:var(--os-rail)!important;
+  width:calc(100% - var(--os-rail))!important;
+}
+body.research-os-ready footer{padding-left:var(--os-rail)!important;padding-bottom:20px!important}
+
+/* 不再使用固定底栏覆盖内容。 */
+.research-os-statusbar{display:none!important}
+body.research-os-ready .research-detail-pane{bottom:0!important}
+
+/* 左侧导航直接显示完整中文，取消依赖悬浮才能理解的单字导航。 */
+.research-os-rail{width:var(--os-rail)!important;align-items:stretch!important;background:#132238!important}
+.research-os-rail-brand{
+  height:68px!important;display:flex!important;align-items:center!important;gap:10px!important;
+  padding:0 16px!important;justify-content:flex-start!important
+}
+.research-os-rail-brand::after{content:"科研工作台";color:#d9e3ef;font-size:12px;font-weight:700;white-space:nowrap}
+.research-os-rail-brand span{flex:0 0 34px!important;width:34px!important;height:34px!important;font-size:13px!important}
+.research-os-nav{align-items:stretch!important;gap:7px!important;padding:16px 10px!important}
+.research-os-nav button{
+  width:100%!important;height:48px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;
+  gap:11px!important;padding:0 13px!important;border-radius:9px!important;text-align:left!important
+}
+.research-os-nav .os-icon{flex:0 0 22px!important;width:22px!important;text-align:center!important;font-size:13px!important}
+.research-os-nav .os-label{
+  position:static!important;display:block!important;opacity:1!important;transform:none!important;pointer-events:none!important;
+  padding:0!important;background:transparent!important;box-shadow:none!important;color:inherit!important;
+  font-size:12.5px!important;line-height:1.3!important;white-space:normal!important
+}
+.research-os-nav button.active::before{left:-10px!important}
+.research-os-nav .os-badge{right:8px!important;top:7px!important}
+.research-os-rail-foot{padding-bottom:18px!important}
+
+/* 充分利用剩余屏幕宽度。 */
+.hero{width:min(var(--readable-max),calc(100% - 64px))!important;max-width:none!important;padding-left:0!important;padding-right:0!important}
+.workspace-mode .hero{padding-top:26px!important;padding-bottom:18px!important}
+.workspace-mode .search-box{min-height:64px!important}
+.workspace{
+  width:min(var(--readable-max),calc(100% - 48px))!important;max-width:none!important;
+  margin:12px auto 96px!important;border-radius:16px!important;overflow:visible!important
+}
+
+/* 顶部分类和视图导航允许换行，不横向遮挡。 */
+.tabs,.research-os-viewbar,.research-controlbar{
+  height:auto!important;min-height:54px!important;overflow:visible!important;white-space:normal!important;
+  flex-wrap:wrap!important;align-items:center!important;row-gap:7px!important
+}
+.tabs{position:relative!important;top:auto!important;padding:10px 24px!important}
+.tabs .tab{min-height:36px!important;padding:0 14px!important;font-size:12.5px!important;white-space:normal!important}
+.research-os-viewbar{padding:10px 24px!important;gap:7px!important}
+.research-os-viewbar button{min-height:36px!important;padding:0 14px!important;font-size:12px!important;white-space:normal!important}
+.research-controlbar{padding-top:12px!important;padding-bottom:12px!important}
+.research-controlbar>*{min-width:0!important}
+.research-controlbar select,.research-controlbar button{min-height:38px!important;font-size:12px!important}
+
+/* 旧筛选侧栏与新控制栏功能重复，会挤压结果。保留数据逻辑，隐藏旧视觉列。 */
+.content-grid{display:block!important;padding-top:0!important;min-height:0!important}
+.filters{display:none!important}
+.results-pane{width:100%!important;padding:34px 42px 56px!important}
+.results-head{align-items:flex-start!important;gap:18px!important;flex-wrap:wrap!important;margin-bottom:22px!important}
+.results-head>div{min-width:min(100%,460px)!important;flex:1 1 460px!important}
+.results-head h2{font-size:25px!important;line-height:1.3!important}
+.status-line{font-size:12px!important;line-height:1.6!important;white-space:normal!important}
+.results-head .ghost-btn{min-height:38px!important;padding:0 13px!important;font-size:12px!important}
+
+/* 结果分组也允许完整换行。 */
+.ux-all-intro{align-items:flex-start!important;flex-wrap:wrap!important;gap:12px 20px!important;padding:16px 18px!important}
+.ux-all-intro>div{flex-wrap:wrap!important}
+.ux-all-intro strong{font-size:14px!important;line-height:1.5!important}
+.ux-all-intro p{font-size:12px!important;line-height:1.65!important;white-space:normal!important}
+.ux-section{margin-bottom:38px!important}
+.ux-section-head{align-items:flex-start!important;gap:16px!important;flex-wrap:wrap!important;margin-bottom:13px!important}
+.ux-section-head h3{font-size:17px!important;line-height:1.4!important}
+.ux-section-head p{font-size:12px!important;line-height:1.55!important;max-width:none!important;white-space:normal!important}
+
+/* 结果卡片：取消来源、作者、摘要的单行省略与行数截断。 */
+.ux-section-list,.ux-list-view,.results{gap:14px!important}
+.ux-result{overflow:visible!important;border-radius:13px!important}
+.ux-result-body{padding:22px 24px 20px!important;min-width:0!important}
+.ux-source-row{align-items:flex-start!important;gap:10px 16px!important;flex-wrap:wrap!important}
+.ux-source-main{min-width:0!important;max-width:100%!important;flex:1 1 520px!important;align-items:flex-start!important;flex-wrap:wrap!important;font-size:12px!important;line-height:1.55!important}
+.ux-type-label,.ux-verified{white-space:normal!important}
+.ux-source-name{
+  max-width:100%!important;overflow:visible!important;text-overflow:clip!important;white-space:normal!important;
+  overflow-wrap:anywhere!important;word-break:break-word!important;line-height:1.55!important
+}
+.ux-title{margin:10px 0 7px!important;font-size:19px!important;line-height:1.48!important;letter-spacing:-.012em!important;overflow-wrap:anywhere!important}
+.ux-title a{white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
+.ux-authors{
+  margin-bottom:9px!important;color:#66758a!important;font-size:12px!important;line-height:1.65!important;
+  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere!important
+}
+.ux-metrics{gap:7px 8px!important;margin-top:8px!important}
+.ux-metrics span{padding:4px 8px!important;font-size:11px!important;line-height:1.4!important;white-space:normal!important}
+.ux-zh-summary{margin-top:14px!important;padding:14px 16px!important}
+.ux-zh-summary-head{margin-bottom:7px!important}
+.ux-zh-summary-head span{font-size:11px!important}
+.ux-zh-summary-head small{font-size:10px!important}
+.ux-zh-summary p{font-size:14px!important;line-height:1.82!important;white-space:normal!important;overflow-wrap:anywhere!important}
+.ux-description{grid-template-columns:72px minmax(0,1fr)!important;gap:12px!important;margin-top:14px!important;padding-top:13px!important}
+.ux-description-label{font-size:11px!important;line-height:1.6!important}
+.ux-description p{
+  display:block!important;margin:0!important;color:#66758a!important;font-size:13px!important;line-height:1.78!important;
+  -webkit-line-clamp:unset!important;-webkit-box-orient:initial!important;overflow:visible!important;
+  white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important
+}
+.ux-footer{align-items:flex-start!important;gap:12px 18px!important;flex-wrap:wrap!important;margin-top:15px!important;padding-top:12px!important}
+.ux-index-source{flex:1 1 260px!important;font-size:10.5px!important;line-height:1.55!important;white-space:normal!important;overflow-wrap:anywhere!important}
+.ux-index-source strong{font-size:11.5px!important}
+.ux-actions{flex:0 1 auto!important;justify-content:flex-start!important;gap:6px!important}
+.ux-actions a{font-size:11.5px!important;padding:6px 8px!important;line-height:1.35!important;white-space:normal!important}
+
+/* 小型“信号条”难以解释，只保留清晰的数字信号值。 */
+.research-signal-row{display:flex!important;align-items:center!important;gap:7px!important;padding-right:0!important}
+.research-signal-score{min-width:0!important;gap:5px!important}
+.research-signal-score b{font-family:inherit!important;font-size:12px!important;line-height:1.3!important}
+.research-signal-score small{font-family:inherit!important;font-size:10px!important;line-height:1.3!important}
+.research-micro-signal{display:none!important}
+
+/* 研究视图：标题、指标和解释文字全部扩大，并允许自然换行。 */
+.research-os-stage{width:100%!important;max-width:none!important;min-height:0!important;margin:0!important;border:0!important}
+.research-os-stage-head{
+  display:flex!important;align-items:flex-start!important;justify-content:space-between!important;flex-wrap:wrap!important;
+  gap:22px 32px!important;padding:34px 42px 28px!important
+}
+.research-os-stage-head>div:first-child{flex:1 1 620px!important;min-width:0!important}
+.research-os-stage-kicker{font-size:11px!important;line-height:1.4!important;letter-spacing:.04em!important}
+.research-os-stage-head h2{font-size:30px!important;line-height:1.28!important;overflow-wrap:anywhere!important}
+.research-os-stage-head p{max-width:920px!important;font-size:13.5px!important;line-height:1.8!important;white-space:normal!important;overflow-wrap:anywhere!important}
+.research-os-stage-metrics{flex:0 1 auto!important;justify-content:flex-start!important;gap:10px!important}
+.research-os-metric{min-width:94px!important;padding:12px 14px!important;text-align:left!important}
+.research-os-metric b{font-family:inherit!important;font-size:18px!important}
+.research-os-metric span{font-family:inherit!important;font-size:10.5px!important;line-height:1.35!important;white-space:normal!important}
+.research-os-stage-body{padding:32px 42px 50px!important}
+.research-os-integrity{font-size:12px!important;line-height:1.8!important;padding:14px 16px!important;white-space:normal!important;overflow-wrap:anywhere!important}
+
+/* 研究地图：图例更宽、解释更大；窄桌面自动改为上下布局。 */
+.research-map-layout{grid-template-columns:minmax(0,1fr) 320px!important;gap:28px!important}
+.research-map-canvas{min-height:620px!important;overflow:visible!important}
+.research-map-canvas::after{font-size:10px!important}
+.research-map-cluster-label{max-width:180px!important}
+.research-map-cluster-label b{font-family:inherit!important;font-size:12px!important;line-height:1.4!important;white-space:normal!important}
+.research-map-cluster-label span{font-size:10.5px!important;line-height:1.4!important;white-space:normal!important}
+.research-map-tooltip{width:min(300px,calc(100vw - 48px))!important;padding:12px 14px!important}
+.research-map-tooltip strong{font-size:12.5px!important;line-height:1.55!important;white-space:normal!important;overflow-wrap:anywhere!important}
+.research-map-tooltip span{font-size:11px!important;line-height:1.5!important;white-space:normal!important}
+.research-map-legend{gap:14px!important}
+.research-map-legend section{padding:16px 17px!important}
+.research-map-legend h3{font-family:inherit!important;font-size:11.5px!important;line-height:1.4!important}
+.research-map-cluster-list button{font-size:12px!important;line-height:1.5!important;white-space:normal!important}
+.research-map-cluster-list small{font-family:inherit!important;font-size:10px!important}
+.os-source-key{gap:9px 12px!important;font-size:11.5px!important;line-height:1.5!important}
+
+/* 时间、实体、证据和脉络：去掉小字密铺。 */
+.research-timeline-chart{min-height:420px!important;padding:46px 20px 54px!important}
+.research-timeline-chart::before{font-family:inherit!important;font-size:10.5px!important}
+.research-year-column{min-width:42px!important;flex-basis:42px!important;height:300px!important}
+.research-year-label,.research-year-count{font-family:inherit!important;font-size:10px!important}
+.research-timeline-notes{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:16px!important}
+.research-timeline-notes article{padding:18px 20px!important}
+.research-timeline-notes small{font-family:inherit!important;font-size:10px!important;line-height:1.4!important}
+.research-timeline-notes strong{font-size:15px!important;line-height:1.5!important;white-space:normal!important}
+.research-entity-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:18px!important}
+.research-entity-panel-head h3{font-size:13px!important;line-height:1.45!important;white-space:normal!important}
+.research-entity-row{min-height:82px!important;padding:15px 17px!important}
+.research-entity-row strong{font-size:12.5px!important;line-height:1.55!important;white-space:normal!important;overflow-wrap:anywhere!important}
+.research-entity-row p{font-size:11px!important;line-height:1.55!important;white-space:normal!important;overflow-wrap:anywhere!important}
+.research-evidence-board{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:18px!important}
+.research-evidence-lane header{font-size:12px!important;line-height:1.5!important}
+.research-evidence-card{padding:16px 17px!important;font-size:12px!important;line-height:1.65!important;overflow-wrap:anywhere!important}
+.research-path-flow{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:20px!important}
+.research-path-node{padding:22px!important}
+.research-path-node h3{font-size:18px!important;line-height:1.45!important;white-space:normal!important}
+.research-path-node p{font-size:12px!important;line-height:1.75!important;white-space:normal!important;overflow-wrap:anywhere!important}
+.research-path-item{white-space:normal!important;overflow-wrap:anywhere!important}
+
+/* 详情面板同样禁止单行截断。 */
+.research-detail-pane,.research-detail-scroll{overflow-wrap:anywhere!important}
+.research-detail-pane h1,.research-detail-pane h2,.research-detail-pane h3,.research-detail-pane p,.research-detail-pane strong,.research-detail-pane span{
+  white-space:normal!important;text-overflow:clip!important
+}
+.research-neighborhood-node span{
+  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;font-size:9.5px!important;line-height:1.35!important
+}
+
+@media(max-width:1280px){
+  :root{--os-rail:138px}
+  .workspace{width:calc(100% - 32px)!important}
+  .results-pane,.research-os-stage-head,.research-os-stage-body{padding-left:30px!important;padding-right:30px!important}
+  .research-map-layout{grid-template-columns:1fr!important}
+  .research-map-legend{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .research-timeline-notes,.research-entity-grid{grid-template-columns:1fr 1fr!important}
+}
+
+@media(max-width:980px){
+  :root{--os-rail:0px}
+  body.research-os-ready .shell{width:100%!important;margin:0!important;padding-left:0!important}
+  body.research-os-ready .topbar{left:0!important;width:100%!important}
+  body.research-os-ready footer{padding-left:0!important;padding-bottom:78px!important}
+  .topbar{height:auto!important;min-height:60px!important;padding:9px 14px!important;gap:10px!important;flex-wrap:wrap!important}
+  .brand-copy small{display:none!important}
+  .hero{width:calc(100% - 24px)!important;padding-top:30px!important;padding-bottom:24px!important}
+  .workspace-mode .hero{padding-top:14px!important;padding-bottom:12px!important}
+  .workspace{width:calc(100% - 16px)!important;margin:0 8px 90px!important;border-radius:12px!important}
+  .results-pane,.research-os-stage-head,.research-os-stage-body{padding-left:18px!important;padding-right:18px!important}
+
+  /* 手机 / 平板底部导航显示完整中文，不再只显示单字。 */
+  .research-os-rail{position:fixed!important;inset:auto 0 0 0!important;width:100%!important;height:68px!important;display:block!important;z-index:120!important}
+  .research-os-rail-brand,.research-os-rail-foot{display:none!important}
+  .research-os-nav{height:68px!important;width:100%!important;padding:6px!important;display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:3px!important}
+  .research-os-nav button{height:56px!important;padding:0 3px!important;display:grid!important;place-items:center!important;text-align:center!important}
+  .research-os-nav .os-icon{display:none!important}
+  .research-os-nav .os-label{display:block!important;font-size:10.5px!important;line-height:1.25!important;text-align:center!important;white-space:normal!important}
+  .research-os-nav button.active::before{left:50%!important;top:-6px!important;width:24px!important;height:3px!important;transform:translateX(-50%)!important}
+  .research-os-statusbar{display:none!important}
+
+  /* 两组导航使用网格而非横向滚动，任何标签都能完整看到。 */
+  .tabs,.research-os-viewbar{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;padding:9px!important;overflow:visible!important}
+  .tabs .tab,.research-os-viewbar button{width:100%!important;min-height:38px!important;padding:5px 7px!important;text-align:center!important}
+  .research-os-viewbar .os-viewbar-spacer,.research-os-session-chip{display:none!important}
+  .research-controlbar{padding:10px 12px!important;gap:8px!important}
+  .research-controlbar>*{flex:1 1 180px!important}
+
+  .ux-title{font-size:17px!important}
+  .ux-result-body{padding:18px!important}
+  .ux-description{grid-template-columns:1fr!important;gap:5px!important}
+  .ux-footer{display:block!important}
+  .ux-actions{margin-top:10px!important}
+  .research-os-stage-head{padding-top:24px!important;padding-bottom:22px!important}
+  .research-os-stage-head h2{font-size:26px!important}
+  .research-os-stage-metrics{width:100%!important}
+  .research-os-metric{flex:1 1 90px!important}
+  .research-map-canvas{min-height:520px!important;overflow:hidden!important}
+  .research-map-legend{grid-template-columns:1fr!important}
+  .research-timeline-notes,.research-entity-grid,.research-evidence-board,.research-path-flow{grid-template-columns:1fr!important}
+}
+
+@media(max-width:560px){
+  .top-actions{width:100%!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important}
+  .top-actions .ghost-btn{width:100%!important;min-height:36px!important;padding:0 8px!important}
+  .top-actions #densityToggle,.top-actions #exportBtn{display:none!important}
+  .search-box{grid-template-columns:20px minmax(0,1fr)!important;gap:8px!important;padding:9px 10px!important}
+  .search-box kbd{display:none!important}
+  .search-box .search-btn{grid-column:1/-1!important;width:100%!important;min-height:46px!important}
+  .tabs,.research-os-viewbar{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .results-pane{padding:20px 12px 34px!important}
+  .results-head h2{font-size:22px!important}
+  .ux-result-body{padding:16px 14px!important}
+  .ux-title{font-size:16px!important;line-height:1.55!important}
+  .ux-zh-summary p{font-size:13.5px!important}
+  .research-os-stage-head,.research-os-stage-body{padding-left:14px!important;padding-right:14px!important}
+  .research-os-stage-head h2{font-size:23px!important}
+  .research-map-canvas{min-height:460px!important}
+  .research-os-nav .os-label{font-size:9.5px!important}
+}
