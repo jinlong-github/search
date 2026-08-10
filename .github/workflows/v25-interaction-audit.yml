@@ -13,22 +13,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install browser harness
-        run: npm install --no-save playwright-core@1.54.2
+      - name: Install browser harness and CJK fonts
+        run: |
+          npm install --no-save playwright-core@1.54.2
+          if ! fc-list :lang=zh | grep -q .; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+            fc-cache -f
+          fi
+      - name: Static reliability checks
+        run: |
+          node --check site/settings-v19.js
+          node --check site/control-v25-compat.js
+          node --check tests/interaction-v25.js
+          test -s site/reliability-v25.css
+          grep -q 'providers?.ai' site/settings-v19.js
+          grep -q 'providers?.ai' site/control-v25-compat.js
+          grep -q 'requestProfile:runtimeProfile' site/settings-v19.js
       - name: Run local site
         run: |
           python3 -m http.server 8000 -d site >/tmp/v25-http.log 2>&1 &
           echo $! >/tmp/v25-http.pid
       - name: Full interaction audit
-        run: |
-          sed -i 's/#researchOsViewbar \[data-os-view=/#researchOsRail [data-os-view=/' tests/interaction-v25.js
-          node tests/interaction-v25.js
+        run: node tests/interaction-v25.js
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: v25-interaction-audit
           path: |
-            /tmp/v25-desktop.png
-            /tmp/v25-mobile.png
+            /tmp/v25-settings-service.png
+            /tmp/v25-settings-provider.png
+            /tmp/v25-project.png
+            /tmp/v25-mobile-settings.png
           if-no-files-found: ignore
-          retention-days: 2
+          retention-days: 3
