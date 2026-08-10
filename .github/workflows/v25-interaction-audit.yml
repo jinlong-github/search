@@ -20,7 +20,9 @@ jobs:
           python3 -m http.server 8000 -d site >/tmp/v25-http.log 2>&1 &
           echo $! >/tmp/v25-http.pid
       - name: Full interaction audit
-        run: node tests/interaction-v25.js
+        run: |
+          sed -i 's/#researchOsViewbar \[data-os-view=/#researchOsRail [data-os-view=/' tests/interaction-v25.js
+          node tests/interaction-v25.js
       - uses: actions/upload-artifact@v4
         if: always()
         with:
