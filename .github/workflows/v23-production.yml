@@ -1,0 +1,85 @@
+name: V23 Provider Deployment Guard
+
+on:
+  workflow_run:
+    workflows: ["Deploy GitHub Pages"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install CJK fonts
+        run: |
+          if ! fc-list :lang=zh | grep -q .; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+            fc-cache -f
+          fi
+
+      - name: Static v23 checks
+        run: |
+          node --check site/provider-profiles-v23.js
+          node --check site/settings-v18-deeplink.js
+          test -s site/provider-profiles-v23.css
+          grep -q 'provider-profiles-v23.js?v=23' site/settings-v18-deeplink.js
+          grep -q 'settings.*provider' site/settings-v18-deeplink.js
+          grep -q 'Provider 模板' site/provider-profiles-v23.js
+          grep -q '本地草稿 vs Worker 已部署' site/provider-profiles-v23.js
+          grep -q '测试当前 Profile' site/provider-profiles-v23.js
+          grep -q 'Crossref' README.md
+          grep -q 'AI Provider Profiles' worker/AI_PROVIDER_CONFIG.md
+          grep -q 'Provider Profiles' worker/README.md
+
+      - name: Verify deployed v23 provider UX
+        env:
+          REVISION: ${{ github.event.workflow_run.head_sha }}
+          PAGE_URL: https://jinlong-github.github.io/search/
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          for i in $(seq 1 12); do
+            if curl -fsSL --retry 2 --max-time 15 "${PAGE_URL}settings-v18-deeplink.js?v23-health=${REVISION}" >/tmp/v23-loader.js; then break; fi
+            sleep 5
+          done
+          grep -q 'provider-profiles-v23.js?v=23' /tmp/v23-loader.js
+
+          DESKTOP=/tmp/v23-prod-desktop
+          MOBILE=/tmp/v23-prod-mobile
+          rm -rf "$DESKTOP" "$MOBILE"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$DESKTOP" --window-size=1440,1400 --virtual-time-budget=11000 \
+            --dump-dom "${PAGE_URL}?settings=provider&fresh=v23&rev=${REVISION}" >/tmp/v23-prod.html 2>/tmp/v23-prod.log
+          grep -q '快速配置与部署诊断' /tmp/v23-prod.html
+          grep -q 'OpenAI · Responses API' /tmp/v23-prod.html
+          grep -q 'OpenAI-compatible · Chat Completions' /tmp/v23-prod.html
+          grep -q '本地草稿 vs Worker 已部署' /tmp/v23-prod.html
+          grep -q '测试当前 Profile' /tmp/v23-prod.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$DESKTOP" --hide-scrollbars --window-size=1440,1400 --virtual-time-budget=10000 \
+            --screenshot=/tmp/v23-prod-settings.png "${PAGE_URL}?settings=provider&shot=${REVISION}" >/tmp/v23-prod-shot.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$MOBILE" --hide-scrollbars --window-size=430,1200 --virtual-time-budget=10000 \
+            --screenshot=/tmp/v23-prod-mobile.png "${PAGE_URL}?settings=provider&shot-mobile=${REVISION}" >/tmp/v23-prod-mobile.log 2>&1
+          test -s /tmp/v23-prod-settings.png
+          test -s /tmp/v23-prod-mobile.png
+
+      - name: Upload v23 production screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-ui-v23-provider-deployment
+          path: |
+            /tmp/v23-prod-settings.png
+            /tmp/v23-prod-mobile.png
+            /tmp/v23-prod.html
+          if-no-files-found: error
+          retention-days: 3

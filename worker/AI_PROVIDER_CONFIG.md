@@ -1,246 +1,133 @@
-# AI 提供方自定义配置
+# AI Provider Profiles
 
-Research OS v22 支持 OpenAI Responses API，以及多数提供 OpenAI-compatible `/chat/completions` 或 `/responses` 接口的服务；同时支持在一个 Worker 中配置多套 Provider Profiles，让不同项目绑定不同 AI 上游、模型和提示词策略。
+Research OS 推荐使用 **Provider Profiles** 管理 AI。一个 Worker 可以连接多套上游，研究项目只绑定 Profile ID、模型覆盖和提示词覆盖。
 
-## 推荐架构
+```text
+浏览器 / 项目
+    ↓ profile ID
+Cloudflare Worker
+    ↓ 服务端选择 URL / 协议 / Secret
+AI Provider
+```
 
-浏览器只连接你自己的 Worker：
+真实 API Key 不进入浏览器，也不写进 `AI_PROFILES_JSON`。
 
-`GitHub Pages -> Cloudflare Worker -> AI Provider Profile -> AI 上游服务`
+## 1. 配置 Profiles
 
-API Key 只保存在 Worker Secret 中。不要把真实 AI Key 写入 GitHub、HTML、JavaScript、`AI_PROFILES_JSON` 或 localStorage。
-
-## v22：多 Provider Profiles
-
-Provider Profile 是一套服务端 AI 连接档案。浏览器和项目只发送稳定的 `profile` ID，例如 `openai`、`qwen`、`private-cad`；真正的 Base URL、协议、默认模型、鉴权方式和 Secret 映射都留在 Worker。
-
-示例：
+Cloudflare Worker 普通环境变量：
 
 ```text
 AI_DEFAULT_PROFILE=openai
 AI_ALLOW_PROFILE_OVERRIDE=true
-AI_PROFILES_JSON=[{"id":"openai","name":"OpenAI","provider":"OpenAI","baseUrl":"https://api.openai.com/v1","mode":"responses","path":"/responses","model":"gpt-5-mini","keyBinding":"AI_KEY_OPENAI","authHeader":"Authorization","authPrefix":"Bearer ","allowedModels":["gpt-5-mini"],"allowModelOverride":true,"allowPromptOverride":true,"defaultPrompt":""},{"id":"private-cad","name":"Private CAD","provider":"Internal","baseUrl":"https://ai.example.com/v1","mode":"chat-completions","path":"/chat/completions","model":"cad-research-model","keyBinding":"AI_KEY_PRIVATE_CAD","authHeader":"x-api-key","authPrefix":"","allowedModels":["cad-research-model"],"allowModelOverride":true,"allowPromptOverride":true,"defaultPrompt":"优先分析 CAD、B-Rep、几何约束和工程可实现性。"}]
+AI_PROFILES_JSON=[{"id":"openai","name":"OpenAI Research","provider":"OpenAI","baseUrl":"https://api.openai.com/v1","mode":"responses","path":"/responses","model":"gpt-5-mini","keyBinding":"AI_KEY_OPENAI","authHeader":"Authorization","authPrefix":"Bearer ","allowedModels":["gpt-5-mini"],"allowModelOverride":true,"allowPromptOverride":true}]
 ```
 
-每个档案的 Key 使用独立 Worker Secret：
+常用字段：
+
+- `id`：稳定 Profile ID，项目只保存这个值。
+- `baseUrl`：AI 基础地址。
+- `mode`：`responses` 或 `chat-completions`。
+- `path`：例如 `/responses`、`/chat/completions`。
+- `model`：默认模型名称。
+- `keyBinding`：对应的 Worker Secret 变量名。
+- `authHeader` / `authPrefix`：鉴权请求头。
+- `allowedModels`：允许网页 / 项目覆盖的模型白名单。
+- `defaultPrompt`：该档案的服务端默认附加提示词。
+
+## 2. 配置 Secrets
+
+Profile JSON 只写变量名。真实密钥通过 Wrangler Secret 保存：
 
 ```bash
 cd worker
 npx wrangler secret put AI_KEY_OPENAI
-npx wrangler secret put AI_KEY_PRIVATE_CAD
 npm run deploy
 ```
 
-`AI_PROFILES_JSON` 中的 `keyBinding` 只是 Secret 变量名，不是密钥本身。
-
-### Profile 字段
-
-常用字段：
-
-```text
-id                   稳定档案 ID，项目和网页通过它绑定 Provider
-name                 UI 显示名称
-provider             Provider 名称
-baseUrl              上游 Base URL
-mode                 responses | chat-completions
-path                 /responses | /chat/completions 或自定义路径
-model                默认模型
-keyBinding           Worker Secret 绑定名，例如 AI_KEY_OPENAI
-authHeader           Authorization / x-api-key 等
-authPrefix           Bearer  或空字符串
-allowedModels        可覆盖模型白名单
-allowModelOverride   是否允许请求覆盖模型
-allowPromptOverride  是否允许浏览器/项目追加提示词
-defaultPrompt        该档案的服务端默认提示词
-inputUsdPer1M        可选：输入 Token 单价
-outputUsdPer1M       可选：输出 Token 单价
-```
-
-### 默认档案与项目切换
-
-```text
-AI_DEFAULT_PROFILE=openai
-AI_ALLOW_PROFILE_OVERRIDE=true
-```
-
-当 `AI_ALLOW_PROFILE_OVERRIDE=false` 时，即使网页或项目绑定了另一个 Profile，Worker 也会拒绝切换。
-
-项目可以保存：
-
-```text
-aiProfile=private-cad
-aiModel=cad-research-model
-aiPrompt=重点提取二维工程图到参数化 B-Rep 的几何与拓扑恢复约束。
-```
-
-实际优先级为：
-
-```text
-Worker 默认 Profile
-→ 全局运行时 Profile
-→ 项目 Profile
-
-Profile 默认模型
-→ 全局模型覆盖
-→ 项目模型覆盖
-
-系统固定证据规则
-→ Profile 默认提示词
-→ 全局提示词
-→ 项目提示词
-```
-
-## v21：单 Provider 配置仍然兼容
-
-如果没有配置 `AI_PROFILES_JSON`，Worker 会继续使用原来的单 Provider 模式。
-
-### 最小配置：OpenAI Responses
-
-```text
-AI_API_KEY=<secret>
-AI_PROVIDER_NAME=OpenAI
-AI_BASE_URL=https://api.openai.com/v1
-AI_API_MODE=responses
-AI_API_PATH=/responses
-AI_MODEL=gpt-5-mini
-AI_AUTH_HEADER=Authorization
-AI_AUTH_PREFIX=Bearer 
-AI_ALLOW_MODEL_OVERRIDE=true
-AI_ALLOW_PROMPT_OVERRIDE=true
-```
-
-密钥通过交互式 Secret 命令配置：
+多档案时，每个 Key 单独保存：
 
 ```bash
-cd worker
-npx wrangler secret put AI_API_KEY
+npx wrangler secret put AI_KEY_OPENAI
+npx wrangler secret put AI_KEY_PRIVATE
 npm run deploy
 ```
 
-## OpenAI-compatible Chat Completions
-
-如果你的服务只兼容 `/v1/chat/completions`，使用：
-
-```text
-AI_PROVIDER_NAME=My Provider
-AI_BASE_URL=https://api.example.com/v1
-AI_API_MODE=chat-completions
-AI_API_PATH=/chat/completions
-AI_MODEL=my-model-name
-AI_AUTH_HEADER=Authorization
-AI_AUTH_PREFIX=Bearer 
-AI_ALLOW_MODEL_OVERRIDE=true
-AI_ALLOW_PROMPT_OVERRIDE=true
-```
-
-## 非 Bearer 鉴权
-
-如果服务要求 `x-api-key: <key>`：
-
-```text
-AI_AUTH_HEADER=x-api-key
-AI_AUTH_PREFIX=
-```
-
-单 Provider 模式的 Secret 仍然使用 `AI_API_KEY`；Profiles 模式则使用对应的 `keyBinding`。
-
-## 模型覆盖
-
-单 Provider 模式默认模型由 `AI_MODEL` 决定。若希望网页或项目工作区临时选择模型：
-
-```text
-AI_ALLOW_MODEL_OVERRIDE=true
-```
-
-建议同时限制可选模型：
-
-```text
-AI_ALLOWED_MODELS=model-a,model-b,model-c
-```
-
-Profiles 模式中的模型覆盖权限和白名单由每个 Profile 自己的 `allowModelOverride` / `allowedModels` 决定。
-
-## 提示词
-
-提示词保留强制科研证据边界：
-
-1. 系统固定科研证据规则：永远保留，防止摘要编造实验数字、关系或结论。
-2. Profile / Worker 默认附加提示词。
-3. 浏览器全局提示词。
-4. 项目提示词。
-
-项目提示词示例：
-
-```text
-重点说明工程约束、输入输出、适用条件和失败边界。避免市场宣传语气。对原始片段没有提供的信息明确写“未说明”。
-```
-
-自定义提示词不能取消系统固定的 JSON 输出格式和证据边界规则。
-
-## 成本估算
-
-单 Provider 模式：
-
-```text
-AI_INPUT_USD_PER_1M=<当前输入 Token 单价>
-AI_OUTPUT_USD_PER_1M=<当前输出 Token 单价>
-```
-
-Profiles 模式建议在各 Profile 内配置：
-
-```json
-{"inputUsdPer1M":0.0,"outputUsdPer1M":0.0}
-```
-
-价格不写死在前端，需要你按照当前服务实际价格维护。
-
-## 旧配置兼容
-
-v22 继续兼容以下旧名称：
-
-```text
-OPENAI_API_KEY              -> AI_API_KEY
-OPENAI_BASE_URL             -> AI_BASE_URL
-OPENAI_MODEL                -> AI_MODEL
-OPENAI_INPUT_USD_PER_1M     -> AI_INPUT_USD_PER_1M
-OPENAI_OUTPUT_USD_PER_1M    -> AI_OUTPUT_USD_PER_1M
-```
-
-因此你可以逐步从单 Provider 迁移到 Profiles，不需要一次性修改现有 Worker。
-
-## 状态检查
-
-部署后访问 Worker：
-
-```text
-GET /api/status
-```
-
-v22 会增加：
-
-```text
-ai_profiles.enabled
-ai_profiles.default_profile
-ai_profiles.profile_override_allowed
-ai_profiles.profiles[]
-```
-
-每个公开 Profile 会显示 Provider、协议、Base URL、API Path、模型、Secret 绑定名、是否已配置 Key、模型/提示词覆盖权限与价格配置状态；不会返回 API Key 或默认提示词正文。
-
-摘要接口保持：
-
-```text
-POST /api/ai/summaries
-```
-
-可选请求字段：
+## 3. OpenAI-compatible 示例
 
 ```json
 {
-  "profile": "private-cad",
-  "model": "可选模型覆盖",
-  "prompt": "可选附加提示词",
-  "style": "standard",
-  "items": []
+  "id": "private",
+  "name": "Private Research Model",
+  "provider": "Private AI",
+  "baseUrl": "https://ai.example.com/v1",
+  "mode": "chat-completions",
+  "path": "/chat/completions",
+  "model": "research-model",
+  "keyBinding": "AI_KEY_PRIVATE",
+  "authHeader": "x-api-key",
+  "authPrefix": "",
+  "allowedModels": ["research-model"],
+  "allowModelOverride": true,
+  "allowPromptOverride": true
 }
 ```
+
+## 4. 网站配置流程
+
+打开 **配置 → AI 接口**：
+
+1. 选择 Provider 模板并套用到草稿。
+2. 修改 Profile ID、URL、模型和 Secret 绑定名。
+3. 保存档案并复制 Worker 配置。
+4. 部署 Worker。
+5. 点击 **刷新 Worker 状态**，比较“本地草稿 vs Worker 已部署”。
+6. 点击 **测试当前 Profile**，验证 URL、鉴权、模型和协议整条链路。
+
+真实测试会产生少量 Token 消耗。
+
+## 5. 模型与提示词优先级
+
+```text
+项目 Profile > 全局 Profile > Worker 默认 Profile
+项目模型 > 全局模型 > Profile 默认模型
+Profile 默认提示词 + 全局提示词 + 项目提示词
+```
+
+系统固定的科研证据规则始终保留，自定义提示词不能取消“不得编造实验数字、引用关系、专利关系或因果关系”等约束。
+
+## 6. Profile 切换安全
+
+允许网页 / 项目切换：
+
+```text
+AI_ALLOW_PROFILE_OVERRIDE=true
+```
+
+设置为 `false` 时，Worker 始终使用 `AI_DEFAULT_PROFILE`。
+
+每个 Profile 仍可单独限制模型和提示词覆盖：
+
+```json
+{
+  "allowedModels": ["model-a", "model-b"],
+  "allowModelOverride": true,
+  "allowPromptOverride": true
+}
+```
+
+浏览器不能临时指定任意 Base URL，因此 Worker 不会成为开放代理。
+
+## 7. 旧单 Provider 配置
+
+没有 `AI_PROFILES_JSON` 时，旧配置继续兼容：
+
+```text
+AI_API_KEY / OPENAI_API_KEY
+AI_BASE_URL / OPENAI_BASE_URL
+AI_MODEL / OPENAI_MODEL
+AI_API_MODE
+AI_API_PATH
+AI_DEFAULT_PROMPT
+```
+
+新部署建议直接使用 Provider Profiles。
