@@ -2,7 +2,7 @@
   const AI_KEY = 'research-search:ai-settings-v1';
   const WORKER_KEY = 'research-search:worker-url';
   const CACHE_KEY = 'research-search:ai-summary-cache-v1';
-  const DEFAULTS = {enabled:false,style:'standard',batchSize:10,onlyWithSource:true,requestModel:'',customPrompt:'',projectModel:'',projectPrompt:''};
+  const DEFAULTS = {enabled:false,style:'standard',batchSize:10,onlyWithSource:true,requestProfile:'',requestModel:'',customPrompt:'',projectProfile:'',projectModel:'',projectPrompt:''};
   let generation = 0;
 
   const clean = value => String(value ?? '').replace(/\s+/g,' ').trim();
@@ -26,12 +26,13 @@
     const filtered = config.onlyWithSource ? list.filter(item => sourceText(item).length >= 30) : list;
     return filtered.slice(0, Math.max(1, Math.min(16, Number(config.batchSize) || 10)));
   }
+  function resolvedProfile(config) { return clean(config.projectProfile || config.requestProfile || ''); }
   function resolvedModel(config) { return clean(config.projectModel || config.requestModel || ''); }
   function resolvedPrompt(config) { return [config.customPrompt,config.projectPrompt].map(value=>String(value||'').trim()).filter(Boolean).join('\n\n').slice(0,6000); }
 
   function cache() { return loadJson(CACHE_KEY,{}); }
   function cacheFingerprint(item,config) {
-    return `${clean(item.title)}|${sourceText(item).slice(0,280)}|${config.style}|${resolvedModel(config)}|${resolvedPrompt(config).slice(0,500)}`;
+    return `${clean(item.title)}|${sourceText(item).slice(0,280)}|${config.style}|${resolvedProfile(config)}|${resolvedModel(config)}|${resolvedPrompt(config).slice(0,500)}`;
   }
   function applySummary(key,summary,mode='AI 生成') {
     if (!key || !summary) return;
@@ -77,14 +78,16 @@
     if (pending.length) telemetry()?.cacheMiss(pending.length);
     if (!pending.length) { setUiStatus(`AI 缓存命中 ${cacheHits} 条摘要`,'ok'); return; }
 
+    const profile=resolvedProfile(config);
     const model=resolvedModel(config);
     const prompt=resolvedPrompt(config);
-    setUiStatus(`AI 正在增强 ${pending.length} 条摘要${model?` · ${model}`:''}…`,'loading');
+    const target=[profile&&`档案 ${profile}`,model].filter(Boolean).join(' · ');
+    setUiStatus(`AI 正在增强 ${pending.length} 条摘要${target?` · ${target}`:''}…`,'loading');
     try {
       const response = await fetch(`${base}/api/ai/summaries`, {
         method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
         body:JSON.stringify({
-          style:config.style,model,prompt,
+          style:config.style,profile,model,prompt,
           items:pending.map(item => ({
             key:keyFor(item),type:item.type || 'record',title:clean(item.title),source:sourceFor(item),
             year:item.year || item.publication_year || null,authors:Array.isArray(item.authors) ? item.authors.slice(0,6) : [],
@@ -101,15 +104,16 @@
         if (!key || !summary) return;
         applySummary(key,summary,'AI 生成');
         const item = pending.find(candidate => keyFor(candidate) === key);
-        if (item) saved[key] = {fingerprint:cacheFingerprint(item,config),summary,at:Date.now(),model:data.model||model||''};
+        if (item) saved[key] = {fingerprint:cacheFingerprint(item,config),summary,at:Date.now(),profile:data.profile||profile||'',model:data.model||model||''};
       });
       const trimmed = Object.entries(saved).sort((a,b) => Number(b[1]?.at || 0)-Number(a[1]?.at || 0)).slice(0,120);
       saveJson(CACHE_KEY,Object.fromEntries(trimmed));
-      telemetry()?.addAiUsage({ok:true,model:data.model || model || '',count:summaries.length,usage:data.usage || {},estimatedCostUsd:data.estimated_cost_usd});
-      setUiStatus(`${data.provider||'AI'} · ${data.model||model||'默认模型'} 已增强 ${summaries.length} 条${cacheHits ? ` · 缓存 ${cacheHits}` : ''}`,'ok');
+      telemetry()?.addAiUsage({ok:true,profile:data.profile || profile || '',model:data.model || model || '',count:summaries.length,usage:data.usage || {},estimatedCostUsd:data.estimated_cost_usd});
+      const usedProfile=data.profile||profile||'';
+      setUiStatus(`${data.provider||'AI'}${usedProfile?` · ${usedProfile}`:''} · ${data.model||model||'默认模型'} 已增强 ${summaries.length} 条${cacheHits ? ` · 缓存 ${cacheHits}` : ''}`,'ok');
     } catch (error) {
       console.warn('AI summary enhancement failed:', error);
-      telemetry()?.addAiUsage({ok:false,error:error.message || 'AI 请求失败',model:error?.data?.model || model || '',count:0,usage:error?.data?.usage || {},estimatedCostUsd:error?.data?.estimated_cost_usd});
+      telemetry()?.addAiUsage({ok:false,error:error.message || 'AI 请求失败',profile:error?.data?.profile || profile || '',model:error?.data?.model || model || '',count:0,usage:error?.data?.usage || {},estimatedCostUsd:error?.data?.estimated_cost_usd});
       setUiStatus(`AI 暂不可用：${error.message}`,'error');
     }
   }
