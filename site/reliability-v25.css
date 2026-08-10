@@ -11,3 +11,19 @@
 #settingsDialog [data-settings-section][hidden] {
   display: none !important;
 }
+
+/* Leave a real scroll safety area above the persistent dialog footer. */
+#settingsDialog.settings-center .settings-center-body {
+  padding-bottom: 132px !important;
+  scroll-padding-bottom: 132px;
+}
+
+@media (max-width: 760px) {
+  #settingsDialog.settings-center .settings-center-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+  #settingsDialog.settings-center .settings-center-body {
+    padding-bottom: 104px !important;
+    scroll-padding-bottom: 104px;
+  }
+}
