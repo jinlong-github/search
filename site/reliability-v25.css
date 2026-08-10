@@ -12,18 +12,48 @@
   display: none !important;
 }
 
-/* Leave a real scroll safety area above the persistent dialog footer. */
+/* The dialog is a real three-row layout: header / scrollable content / footer.
+   This prevents the footer from covering Provider controls during scrollIntoView. */
+#settingsDialog.settings-center[open] {
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  height: min(88vh, 900px) !important;
+  max-height: min(88vh, 900px) !important;
+}
+#settingsDialog.settings-center .settings-center-layout {
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
 #settingsDialog.settings-center .settings-center-body {
-  padding-bottom: 132px !important;
-  scroll-padding-bottom: 132px;
+  min-height: 0 !important;
+  overflow: auto !important;
+  padding-bottom: 52px !important;
+  scroll-padding-bottom: 52px;
+}
+#settingsDialog.settings-center .settings-center-footer {
+  position: relative !important;
+  z-index: 10 !important;
+  flex: none !important;
 }
 
 @media (max-width: 760px) {
+  #settingsDialog.settings-center[open] {
+    height: 92vh !important;
+    max-height: 92vh !important;
+  }
+  #settingsDialog.settings-center .settings-center-layout {
+    display: block !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: auto !important;
+  }
   #settingsDialog.settings-center .settings-center-nav {
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   }
   #settingsDialog.settings-center .settings-center-body {
-    padding-bottom: 104px !important;
-    scroll-padding-bottom: 104px;
+    overflow: visible !important;
+    padding-bottom: 52px !important;
+    scroll-padding-bottom: 52px;
   }
 }
