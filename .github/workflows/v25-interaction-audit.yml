@@ -33,10 +33,12 @@ jobs:
             const page=await context.newPage();
             const errors=[];
             page.on('pageerror',e=>errors.push(String(e)));
-            page.on('console',m=>{if(m.type()==='error' && !/favicon/i.test(m.text())) errors.push('console:'+m.text())});
+            page.on('console',m=>{if(m.type()==='error'&&!/favicon|ERR_NAME_NOT_RESOLVED/i.test(m.text()))errors.push('console:'+m.text())});
 
-            const status={providers:{ai:true,openai:true,brave:true,patentsview:true},ai:{provider:'MockAI',model:'mock-model',key_configured:true,base_url:'https://mock.example/v1',api_path:'/responses',protocol:'responses',model_override_allowed:true,prompt_override_allowed:true},ai_profiles:{default_profile:'alpha',profiles:[{id:'alpha',name:'Alpha',provider:'MockAI',model:'mock-model',key_configured:true}]}};
+            const status={service_version:'research-os-v24-test',providers:{ai:true,openai:false,brave:true,patentsview:true},ai:{provider:'MockAI',model:'mock-model',key_configured:true,base_url:'https://mock.example/v1',api_path:'/responses',protocol:'responses',model_override_allowed:true,prompt_override_allowed:true},ai_profiles:{enabled:true,default_profile:'alpha',profiles:[{id:'alpha',name:'Alpha',provider:'MockAI',model:'mock-model',key_configured:true}]}};
             await page.route('https://mock-v25.workers.dev/api/status',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(status)}));
+            await page.route('https://mock-v25.workers.dev/api/web**',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({results:[{title:'Official engineering page',url:'https://example.com/official',description:'Engineering source',domain:'example.com',official:true}],total:1})}));
+            await page.route('https://mock-v25.workers.dev/api/patents**',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({patents:[{patent_id:'1234567',patent_title:'Engineering reconstruction patent',patent_date:'2024-01-01',patent_year:2024,patent_abstract:'Patent abstract',patent_num_total_documents_cited:2,assignees:[{assignee_organization:'Example Corp'}]}],total_hits:1})}));
             await page.route('https://mock-v25.workers.dev/api/ai/summaries',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({provider:'MockAI',model:'mock-model',usage:{total_tokens:10},summaries:[{key:'test:v21',summary:'测试摘要'}]})}));
             await page.route('https://mock-v25.workers.dev/api/ai/research',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({profile:'alpha',provider:'MockAI',model:'mock-model',latency_ms:12,result:{headline:'证据审查完成',summary:'基于项目证据完成审查。',signals:[{label:'缺口',text:'需要更多工程证据',evidence_keys:[]}],queries:['next query'],tasks:['补充工程验证'],claim_reviews:[]}})}));
             await page.route('https://api.crossref.org/**',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({message:{items:[{DOI:'10.1/test',title:['Engineering drawing reconstruction'],author:[{given:'A',family:'B'}],published:{'date-parts':[[2025,1,1]]},URL:'https://doi.org/10.1/test',type:'journal-article','is-referenced-by-count':3,score:20}], 'total-results':1}})}));
@@ -44,59 +46,59 @@ jobs:
 
             await page.goto('http://127.0.0.1:8000/?audit=1');
             await page.click('#settingsBtn');
-            if(!await page.locator('#settingsDialog').evaluate(d=>d.open)) throw new Error('settings dialog did not open');
-            for(const name of ['ai','provider','service','sources','security']) {
-              const b=page.locator(`[data-settings-jump="${name}"]`);
-              if(await b.count()) { await b.click(); if(!await b.evaluate(n=>n.classList.contains('active'))) throw new Error('nav failed '+name); }
+            if(!await page.locator('#settingsDialog').evaluate(d=>d.open))throw new Error('settings dialog did not open');
+            for(const name of ['ai','provider','service','sources','security']){
+              const b=page.locator(`[data-settings-jump="${name}"]`);if(!await b.count())throw new Error('missing settings nav '+name);
+              await b.click();
+              if(!await b.evaluate(n=>n.classList.contains('active')))throw new Error('nav failed '+name);
+              const target=page.locator(`[data-settings-section="${name}"]`);if(!await target.isVisible())throw new Error('section not visible '+name);
             }
 
+            await page.click('[data-settings-jump="service"]');
             await page.locator('#workerEndpoint').fill('https://mock-v25.workers.dev');
-            await page.click('#testWorker');
-            await page.waitForTimeout(250);
-            const ws=await page.locator('#workerStatus').innerText();
-            if(!/Worker 可用/.test(ws)) throw new Error('worker test no effect: '+ws);
+            await page.click('#testWorker');await page.waitForTimeout(350);
+            const ws=await page.locator('#workerStatus').innerText();if(!/Worker 可用/.test(ws))throw new Error('worker test no effect: '+ws);
+            const envText=await page.locator('[data-v25-env-status-text]').innerText();if(!/research-os-v24-test|Worker 已连接/.test(envText))throw new Error('environment status not refreshed: '+envText);
 
-            const rt=page.locator('[data-ai-v22-runtime-profile]');
-            if(await rt.count()) { await rt.selectOption({label:/Alpha/}).catch(()=>{}); }
-            const model=page.locator('[data-ai-v21-model]');
-            if(await model.count()){await model.fill('model-keep'); await page.click('[data-ai-v21-save-runtime]');}
-            const prompt=page.locator('[data-ai-v21-prompt]');
-            if(await prompt.count()){await prompt.fill('prompt-keep'); await page.click('[data-ai-v21-save-runtime]');}
-            await page.click('#saveSettings');
-            await page.waitForTimeout(120);
+            await page.click('[data-settings-jump="provider"]');
+            const rt=page.locator('[data-ai-v22-runtime-profile]');if(await rt.count())await rt.selectOption('alpha');
+            const model=page.locator('[data-ai-v21-model]');await model.fill('model-keep');
+            const prompt=page.locator('[data-ai-v21-prompt]');await prompt.fill('prompt-keep');
+            await page.click('[data-ai-v21-save-runtime]');
+            await page.click('#saveSettings');await page.waitForTimeout(180);
             const ai=await page.evaluate(()=>JSON.parse(localStorage.getItem('research-search:ai-settings-v1')||'{}'));
-            if(ai.requestModel!=='model-keep' || ai.customPrompt!=='prompt-keep') throw new Error('SAVE_ALL_DESTROYS_PROVIDER_RUNTIME '+JSON.stringify(ai));
-            if((await page.evaluate(()=>localStorage.getItem('research-search:worker-url')))!=='https://mock-v25.workers.dev') throw new Error('worker URL not persisted');
+            if(ai.requestModel!=='model-keep'||ai.customPrompt!=='prompt-keep'||ai.requestProfile!=='alpha')throw new Error('SAVE_ALL_DESTROYS_PROVIDER_RUNTIME '+JSON.stringify(ai));
+            if((await page.evaluate(()=>localStorage.getItem('research-search:worker-url')))!=='https://mock-v25.workers.dev')throw new Error('worker URL not persisted');
 
-            await page.fill('#queryInput','engineering drawing');
-            await page.click('.search-btn');
-            await page.waitForTimeout(450);
-            if(await page.locator('.ux-result').count()<1) throw new Error('search produced no result cards');
+            await page.reload();await page.click('#settingsBtn');await page.click('[data-settings-jump="service"]');
+            if((await page.locator('#workerEndpoint').inputValue())!=='https://mock-v25.workers.dev')throw new Error('worker URL not restored after reload');
+            await page.click('[data-settings-jump="provider"]');
+            if((await page.locator('[data-ai-v21-model]').inputValue())!=='model-keep')throw new Error('runtime model not restored');
+            await page.click('#closeSettings');
+
+            await page.fill('#queryInput','engineering drawing');await page.click('.search-btn');await page.waitForTimeout(650);
+            if(await page.locator('.ux-result').count()<1)throw new Error('search produced no result cards');
+            for(const tab of ['papers','patents','blogs','web','all']){await page.click(`.tab[data-tab="${tab}"]`);await page.waitForTimeout(80);if(!await page.locator(`.tab[data-tab="${tab}"]`).evaluate(n=>n.classList.contains('active')))throw new Error('tab failed '+tab)}
             for(const view of ['map','timeline','entities','evidence','path']){
-              const b=page.locator(`[data-research-os-view="${view}"]`).first();
-              if(await b.count()){await b.click(); await page.waitForTimeout(100); if(!await b.evaluate(n=>n.classList.contains('active'))) throw new Error('view failed '+view);}
+              const b=page.locator(`[data-research-os-view="${view}"]`).first();if(!await b.count())throw new Error('missing research view '+view);
+              await b.click();await page.waitForTimeout(120);if(!await b.evaluate(n=>n.classList.contains('active')))throw new Error('view failed '+view);
             }
+            await page.click('#historyBtn');if(!await page.locator('#historyDialog').evaluate(d=>d.open))throw new Error('history did not open');await page.click('#closeHistory');
 
-            await page.goto('http://127.0.0.1:8000/?project=new&audit=2');
-            await page.evaluate(()=>localStorage.setItem('research-search:worker-url','https://mock-v25.workers.dev'));
-            await page.reload(); await page.waitForTimeout(700);
-            if(await page.locator('[data-project-copilot-v24]').count()!==1) throw new Error('copilot panel missing');
+            await page.goto('http://127.0.0.1:8000/?project=new&audit=2');await page.evaluate(()=>localStorage.setItem('research-search:worker-url','https://mock-v25.workers.dev'));await page.reload();await page.waitForTimeout(800);
+            if(await page.locator('[data-project-copilot-v24]').count()!==1)throw new Error('copilot panel missing');
             for(const action of ['evidence','counter','queries','claims']){
-              await page.click(`[data-v24-action="${action}"]`);
-              await page.waitForTimeout(180);
-              const out=await page.locator('[data-v24-output]').innerText();
-              if(!/证据审查完成/.test(out)) throw new Error('copilot action no result '+action+': '+out);
+              await page.click(`[data-v24-action="${action}"]`);await page.waitForTimeout(220);
+              const out=await page.locator('[data-v24-output]').innerText();if(!/证据审查完成/.test(out))throw new Error('copilot action no result '+action+': '+out);
             }
 
             await page.screenshot({path:'/tmp/v25-desktop.png',fullPage:true});
-            const mctx=await browser.newContext({viewport:{width:430,height:900}});
-            const mp=await mctx.newPage();
-            await mp.goto('http://127.0.0.1:8000/?project=new&mobile=1');
-            await mp.waitForTimeout(500);
+            const mctx=await browser.newContext({viewport:{width:430,height:900}});const mp=await mctx.newPage();
+            await mp.goto('http://127.0.0.1:8000/?project=new&mobile=1');await mp.waitForTimeout(600);await mp.click('#settingsBtn');await mp.click('[data-settings-jump="service"]');
+            if(!await mp.locator('#workerEndpoint').isVisible())throw new Error('mobile service settings not visible');
             await mp.screenshot({path:'/tmp/v25-mobile.png',fullPage:true});
-            if(errors.length) throw new Error('browser errors: '+errors.join(' | '));
-            console.log('FULL_INTERACTION_AUDIT_OK');
-            await browser.close();
+            if(errors.length)throw new Error('browser errors: '+errors.join(' | '));
+            console.log('FULL_INTERACTION_AUDIT_OK');await browser.close();
           })().catch(e=>{console.error(e.stack||e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
