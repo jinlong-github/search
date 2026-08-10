@@ -73,6 +73,7 @@
       text.textContent=`Worker 已连接 · ${data.service_version||'服务版本未知'} · ${profiles.length||1} 个 AI 档案 · ${aiReady?`${providerName} / ${model} 可用`:'AI Secret 未就绪'}`;
       const pill=dialog.querySelector('#aiProviderPill');if(pill){pill.textContent=aiReady?'AI 已就绪':'AI 未配置';pill.className=`settings-status-pill ${aiReady?'ok':'warn'}`}
       const modelNode=dialog.querySelector('#aiModelDisplay');if(modelNode)modelNode.textContent=model;
+      if(window.ResearchProviderProfiles?.refresh)await window.ResearchProviderProfiles.refresh().catch(()=>{});
     }catch(error){text.textContent=`Worker 连接失败：${error.message}`}
   }
 
