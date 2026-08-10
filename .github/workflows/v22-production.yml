@@ -1,0 +1,166 @@
+name: V22 Provider Profiles Production Guard
+
+on:
+  workflow_run:
+    workflows: ["Deploy GitHub Pages"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install CJK fonts
+        run: |
+          if ! fc-list :lang=zh | grep -q .; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+            fc-cache -f
+          fi
+
+      - name: Static v22 checks
+        run: |
+          node --check site/provider-profiles-v22.js
+          node --check site/project-ai-v22.js
+          node --check site/ai-v18.js
+          node --check worker/src/index-v22.js
+          node --check worker/src/entry-v22.js
+          test -s site/provider-profiles-v22.css
+          grep -q 'provider-profiles-v22.css?v=22' site/index.html
+          grep -q 'provider-profiles-v22.js?v=22' site/index.html
+          grep -q 'project-ai-v22.js?v=22' site/index.html
+          grep -q 'ai-v18.js?v=22' site/index.html
+          grep -q '"main": "src/entry-v22.js"' worker/wrangler.jsonc
+          grep -q 'AI_PROFILES_JSON' worker/AI_PROVIDER_CONFIG.md
+          grep -q 'AI_DEFAULT_PROFILE' worker/.dev.vars.example
+
+      - name: Mock multi-provider routing
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import worker from './worker/src/entry-v22.js';
+          const profiles=[
+            {id:'alpha',name:'Alpha Responses',provider:'Alpha',baseUrl:'https://alpha.example/v1',mode:'responses',path:'/responses',model:'alpha-model',keyBinding:'AI_KEY_ALPHA',authHeader:'Authorization',authPrefix:'Bearer ',allowedModels:['alpha-model','alpha-alt'],allowModelOverride:true,allowPromptOverride:true,defaultPrompt:'Alpha default',inputUsdPer1M:2,outputUsdPer1M:8},
+            {id:'beta',name:'Beta Chat',provider:'Beta',baseUrl:'https://beta.example/api',mode:'chat-completions',path:'/chat/completions',model:'beta-model',keyBinding:'AI_KEY_BETA',authHeader:'x-api-key',authPrefix:'',allowedModels:['beta-model','beta-alt'],allowModelOverride:true,allowPromptOverride:true,defaultPrompt:'Beta default'}
+          ];
+          const env={
+            ALLOWED_ORIGINS:'https://jinlong-github.github.io,http://localhost:8000',
+            AI_PROFILES_JSON:JSON.stringify(profiles),AI_DEFAULT_PROFILE:'alpha',AI_ALLOW_PROFILE_OVERRIDE:'true',
+            AI_KEY_ALPHA:'alpha-secret',AI_KEY_BETA:'beta-secret'
+          };
+          const calls=[];
+          globalThis.fetch=async(url,options={})=>{
+            const body=JSON.parse(options.body||'{}');
+            calls.push({url:String(url),headers:options.headers||{},body});
+            if(String(url).includes('alpha.example')) return new Response(JSON.stringify({
+              output:[{content:[{type:'output_text',text:JSON.stringify({summaries:[{key:'paper:1',summary:'Alpha 中文摘要'}]})}]}],
+              usage:{input_tokens:1000,output_tokens:250,total_tokens:1250,input_tokens_details:{cached_tokens:100},output_tokens_details:{reasoning_tokens:50}}
+            }),{status:200,headers:{'Content-Type':'application/json'}});
+            if(String(url).includes('beta.example')) return new Response(JSON.stringify({
+              choices:[{message:{content:JSON.stringify({summaries:[{key:'paper:1',summary:'Beta 中文摘要'}]})}}],
+              usage:{prompt_tokens:500,completion_tokens:100,total_tokens:600,prompt_tokens_details:{cached_tokens:25},completion_tokens_details:{reasoning_tokens:10}}
+            }),{status:200,headers:{'Content-Type':'application/json'}});
+            throw new Error(`Unexpected fetch ${url}`);
+          };
+
+          const statusReq=new Request('https://worker.test/api/status',{headers:{Origin:'https://jinlong-github.github.io'}});
+          const status=await worker.fetch(statusReq,env);
+          const statusData=await status.json();
+          if(!status.ok)throw new Error(`status ${status.status}`);
+          if(status.headers.get('Access-Control-Allow-Origin')!=='https://jinlong-github.github.io')throw new Error('v22 CORS missing');
+          if(statusData.ai_profiles?.profiles?.length!==2)throw new Error('profile status missing');
+          if(statusData.ai_profiles?.default_profile!=='alpha')throw new Error('default profile missing');
+          if(JSON.stringify(statusData).includes('alpha-secret')||JSON.stringify(statusData).includes('beta-secret'))throw new Error('secret leaked in status');
+
+          const item={key:'paper:1',type:'paper',title:'Test paper',text:'Enough technical source context for deterministic routing validation.'};
+          const alphaReq=new Request('https://worker.test/api/ai/summaries',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://jinlong-github.github.io'},body:JSON.stringify({profile:'alpha',items:[item]})});
+          const alpha=await worker.fetch(alphaReq,env);const alphaData=await alpha.json();
+          if(!alpha.ok||alphaData.profile!=='alpha'||alphaData.summaries?.[0]?.summary!=='Alpha 中文摘要')throw new Error(`alpha failed ${JSON.stringify(alphaData)}`);
+          if(alphaData.estimated_cost_usd!==0.004)throw new Error(`alpha cost mismatch ${alphaData.estimated_cost_usd}`);
+          const alphaCall=calls.find(call=>call.url==='https://alpha.example/v1/responses');
+          if(!alphaCall)throw new Error('alpha endpoint not used');
+          if(alphaCall.headers.Authorization!=='Bearer alpha-secret')throw new Error('alpha auth incorrect');
+          if(alphaCall.body.model!=='alpha-model'||!alphaCall.body.input)throw new Error('alpha Responses payload incorrect');
+
+          const betaReq=new Request('https://worker.test/api/ai/summaries',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://jinlong-github.github.io'},body:JSON.stringify({profile:'beta',model:'beta-alt',prompt:'Project prompt',items:[item]})});
+          const beta=await worker.fetch(betaReq,env);const betaData=await beta.json();
+          if(!beta.ok||betaData.profile!=='beta'||betaData.model!=='beta-alt'||betaData.summaries?.[0]?.summary!=='Beta 中文摘要')throw new Error(`beta failed ${JSON.stringify(betaData)}`);
+          const betaCall=calls.find(call=>call.url==='https://beta.example/api/chat/completions');
+          if(!betaCall)throw new Error('beta endpoint not used');
+          if(betaCall.headers['x-api-key']!=='beta-secret')throw new Error('beta auth incorrect');
+          if(betaCall.body.model!=='beta-alt'||!Array.isArray(betaCall.body.messages))throw new Error('beta Chat payload incorrect');
+
+          const blockedEnv={...env,AI_ALLOW_PROFILE_OVERRIDE:'false'};
+          const blockedReq=new Request('https://worker.test/api/ai/summaries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:'beta',items:[item]})});
+          const blocked=await worker.fetch(blockedReq,blockedEnv);const blockedData=await blocked.json();
+          if(blocked.status!==400||blockedData.code!=='PROFILE_OVERRIDE_DISABLED')throw new Error('profile override guard failed');
+
+          const modelReq=new Request('https://worker.test/api/ai/summaries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:'alpha',model:'not-allowed',items:[item]})});
+          const modelRes=await worker.fetch(modelReq,env);const modelData=await modelRes.json();
+          if(modelRes.status!==400||modelData.code!=='MODEL_NOT_ALLOWED')throw new Error('profile model allowlist failed');
+          console.log('v22 multi-provider mock routing passed');
+          NODE
+
+      - name: Verify deployed provider profile UI
+        env:
+          REVISION: ${{ github.event.workflow_run.head_sha }}
+          PAGE_URL: https://jinlong-github.github.io/search/
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          for i in $(seq 1 12); do
+            if curl -fsSL --retry 2 --max-time 15 "${PAGE_URL}?v22-health=${REVISION}" >/tmp/v22-prod-index.html; then break; fi
+            sleep 5
+          done
+          grep -q 'provider-profiles-v22.css?v=22' /tmp/v22-prod-index.html
+          grep -q 'provider-profiles-v22.js?v=22' /tmp/v22-prod-index.html
+          grep -q 'project-ai-v22.js?v=22' /tmp/v22-prod-index.html
+          grep -q 'ai-v18.js?v=22' /tmp/v22-prod-index.html
+
+          SETTINGS=/tmp/v22-settings
+          rm -rf "$SETTINGS"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$SETTINGS" --window-size=1440,1200 --virtual-time-budget=9000 \
+            --dump-dom "${PAGE_URL}?settings=1&v22=${REVISION}" >/tmp/v22-settings.html 2>/tmp/v22-settings.log
+          grep -q 'Provider Profiles' /tmp/v22-settings.html
+          grep -q '多 AI 服务档案' /tmp/v22-settings.html
+          grep -q 'data-ai-v22-runtime-profile' /tmp/v22-settings.html
+          grep -q 'data-ai-v22-profile-list' /tmp/v22-settings.html
+          grep -q 'AI_PROFILES_JSON=' /tmp/v22-settings.html
+          grep -q 'npx wrangler secret put AI_API_KEY' /tmp/v22-settings.html
+
+          PROJECT=/tmp/v22-project
+          rm -rf "$PROJECT"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$PROJECT" --window-size=1440,1100 --virtual-time-budget=10000 \
+            --dump-dom "${PAGE_URL}?project=new&v22=${REVISION}" >/tmp/v22-project.html 2>/tmp/v22-project.log
+          grep -q 'data-project-ai-profile' /tmp/v22-project.html
+          grep -q 'Provider Profile' /tmp/v22-project.html
+          grep -q '项目 AI 策略' /tmp/v22-project.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$SETTINGS" --hide-scrollbars --window-size=1440,1200 --virtual-time-budget=9000 \
+            --screenshot=/tmp/v22-settings.png "${PAGE_URL}?settings=1&shot=${REVISION}" >/tmp/v22-settings-shot.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$PROJECT" --hide-scrollbars --window-size=1440,1100 --virtual-time-budget=9000 \
+            --screenshot=/tmp/v22-project.png "${PAGE_URL}?project=new&shot=${REVISION}" >/tmp/v22-project-shot.log 2>&1
+          test -s /tmp/v22-settings.png
+          test -s /tmp/v22-project.png
+
+      - name: Upload v22 production screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-ui-v22-provider-profiles
+          path: |
+            /tmp/v22-settings.png
+            /tmp/v22-project.png
+            /tmp/v22-settings.html
+            /tmp/v22-project.html
+          if-no-files-found: error
+          retention-days: 3
