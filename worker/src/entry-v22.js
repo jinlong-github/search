@@ -19,6 +19,16 @@ export default {
     const response=await worker.fetch(request,env,ctx);
     const headers=new Headers(response.headers);
     Object.entries(cors(request,env)).forEach(([name,value])=>headers.set(name,value));
+    const url=new URL(request.url);
+    if(request.method==='GET'&&url.pathname==='/api/status'&&response.ok){
+      const data=await response.clone().json().catch(()=>null);
+      if(data&&typeof data==='object'){
+        data.service_version='research-os-v24';
+        data.capabilities={...(data.capabilities||{}),provider_profiles:true,research_copilot:true,research_actions:['evidence','counter','queries','claims']};
+        headers.set('Content-Type','application/json; charset=utf-8');
+        return new Response(JSON.stringify(data),{status:response.status,statusText:response.statusText,headers});
+      }
+    }
     return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
   }
 };
