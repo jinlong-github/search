@@ -19,9 +19,15 @@
     dialog.querySelectorAll('.settings-config-list>div').forEach(row=>{
       const code=row.querySelector('code');const small=row.querySelector('small');if(!code)return;
       if(code.textContent==='OPENAI_API_KEY'){code.textContent='AI_API_KEY';if(small)small.textContent='AI 上游 API Secret，仅 Worker 可见；OPENAI_API_KEY 仍兼容。';}
-      if(code.textContent.startsWith('OPENAI_MODEL=')){code.textContent='AI_MODEL=gpt-5-mini';if(small)small.textContent='AI 默认模型名称，可替换成你的上游服务支持的模型。';}
-      if(code.textContent==='OPENAI_INPUT_USD_PER_1M'){code.textContent='AI_INPUT_USD_PER_1M';}
-      if(code.textContent==='OPENAI_OUTPUT_USD_PER_1M'){code.textContent='AI_OUTPUT_USD_PER_1M';}
+      if(code.textContent.startsWith('OPENAI_MODEL=')){code.textContent='AI_MODEL=gpt-5-mini';if(small)small.textContent='AI 默认模型名称，可替换成你的上游服务支持的模型；OPENAI_MODEL 仍兼容。';}
+      if(code.textContent==='OPENAI_INPUT_USD_PER_1M'){
+        code.textContent='AI_INPUT_USD_PER_1M';
+        if(small)small.textContent='输入 Token 成本估算；兼容旧名 OPENAI_INPUT_USD_PER_1M。';
+      }
+      if(code.textContent==='OPENAI_OUTPUT_USD_PER_1M'){
+        code.textContent='AI_OUTPUT_USD_PER_1M';
+        if(small)small.textContent='输出 Token 成本估算；兼容旧名 OPENAI_OUTPUT_USD_PER_1M。';
+      }
     });
     const command=dialog.querySelector('#workerCommandPreview');
     if(command){
