@@ -1,0 +1,108 @@
+name: V20 Project Production Guard
+
+on:
+  workflow_run:
+    workflows: ["Deploy GitHub Pages"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install CJK fonts
+        run: |
+          if ! fc-list :lang=zh | grep -q .; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+            fc-cache -f
+          fi
+
+      - name: Static v20 checks
+        run: |
+          node --check site/project-v20.js
+          node --check site/project-v20-compat.js
+          node --check site/project-v20-results.js
+          test -s site/project-v20.css
+          test -s site/project-v20-polish.css
+          grep -q 'project-v20.css?v=20' site/index.html
+          grep -q 'project-v20-polish.css?v=20' site/index.html
+          grep -q 'project-v20.js?v=20' site/index.html
+          grep -q 'project-v20-compat.js?v=20' site/index.html
+          grep -q 'project-v20-results.js?v=20' site/index.html
+          grep -q "style-src 'self'" site/index.html
+
+      - name: Verify deployed project workspace
+        env:
+          REVISION: ${{ github.event.workflow_run.head_sha }}
+          PAGE_URL: https://jinlong-github.github.io/search/
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          for i in $(seq 1 12); do
+            if curl -fsSL --retry 2 --max-time 15 "${PAGE_URL}?v20-health=${REVISION}" >/tmp/v20-prod-index.html; then break; fi
+            sleep 5
+          done
+          grep -q 'project-v20.css?v=20' /tmp/v20-prod-index.html
+          grep -q 'project-v20.js?v=20' /tmp/v20-prod-index.html
+          grep -q 'project-v20-results.js?v=20' /tmp/v20-prod-index.html
+
+          PROFILE=/tmp/v20-prod-project
+          rm -rf "$PROFILE"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$PROFILE" --window-size=1440,1100 --virtual-time-budget=8000 \
+            --dump-dom "${PAGE_URL}?project=new&prod=${REVISION}-project" >/tmp/v20-prod-project.html 2>/tmp/v20-prod-project.log
+          grep -q 'id="projectWorkspaceDialog"' /tmp/v20-prod-project.html
+          grep -q 'open=""' /tmp/v20-prod-project.html
+          grep -q '项目工作区' /tmp/v20-prod-project.html
+          grep -q '持续研究空间' /tmp/v20-prod-project.html
+          grep -q '检索轨迹' /tmp/v20-prod-project.html
+          grep -q '项目资料库' /tmp/v20-prod-project.html
+          grep -q '证据工作区' /tmp/v20-prod-project.html
+          grep -q '阶段结论' /tmp/v20-prod-project.html
+          grep -q '下一步路线' /tmp/v20-prod-project.html
+          grep -q '最近活动' /tmp/v20-prod-project.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$PROFILE" --virtual-time-budget=32000 \
+            --dump-dom "${PAGE_URL}?q=machine%20learning&prod=${REVISION}-search" >/tmp/v20-prod-search.html 2>/tmp/v20-prod-search.log
+          RESULT_COUNT=$( (grep -o '<article class="ux-result[^>]*data-key=' /tmp/v20-prod-search.html || true) | wc -l | tr -d ' ' )
+          PROJECT_ACTIONS=$( (grep -o 'project-v20-add' /tmp/v20-prod-search.html || true) | wc -l | tr -d ' ' )
+          echo "v20 production search: results=$RESULT_COUNT project_actions=$PROJECT_ACTIONS"
+          test "$RESULT_COUNT" -ge 1
+          test "$PROJECT_ACTIONS" -ge "$RESULT_COUNT"
+          grep -q '加入项目' /tmp/v20-prod-search.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$PROFILE" --window-size=1440,1100 --virtual-time-budget=10000 \
+            --dump-dom "${PAGE_URL}?project=1&prod=${REVISION}-resume" >/tmp/v20-prod-resume.html 2>/tmp/v20-prod-resume.log
+          grep -q 'machine learning' /tmp/v20-prod-resume.html
+          grep -q '这个项目查过什么' /tmp/v20-prod-resume.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$PROFILE" --hide-scrollbars --window-size=1440,1100 --virtual-time-budget=8000 \
+            --screenshot=/tmp/v20-prod-project.png "${PAGE_URL}?project=1&shot=${REVISION}-desktop" >/tmp/v20-prod-shot.log 2>&1
+          MOBILE=/tmp/v20-prod-mobile
+          rm -rf "$MOBILE"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$MOBILE" --hide-scrollbars --window-size=430,1000 --virtual-time-budget=8000 \
+            --screenshot=/tmp/v20-prod-mobile.png "${PAGE_URL}?project=new&shot=${REVISION}-mobile" >/tmp/v20-prod-mobile.log 2>&1
+          test -s /tmp/v20-prod-project.png
+          test -s /tmp/v20-prod-mobile.png
+
+      - name: Upload v20 production screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-ui-v20-project-workspace
+          path: |
+            /tmp/v20-prod-project.png
+            /tmp/v20-prod-mobile.png
+            /tmp/v20-prod-project.html
+            /tmp/v20-prod-resume.html
+          if-no-files-found: error
+          retention-days: 3
