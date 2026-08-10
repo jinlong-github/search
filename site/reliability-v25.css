@@ -1,0 +1,13 @@
+/* v25 · Interaction reliability guardrails */
+@media (min-width: 981px) {
+  .top-actions #exportBtn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Settings v25 uses explicit tabs; hidden sections must not reserve layout space. */
+#settingsDialog [data-settings-section][hidden] {
+  display: none !important;
+}
