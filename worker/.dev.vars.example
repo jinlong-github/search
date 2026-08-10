@@ -4,4 +4,8 @@ PATENTSVIEW_API_KEY=replace_me_if_available
 # Optional: enables AI Chinese summary enhancement. Keep this server-side only.
 OPENAI_API_KEY=replace_me
 OPENAI_MODEL=gpt-5-mini
+# Optional: used only for local cost estimation in the control center.
+# Set these to the current model's USD price per 1M tokens; do not hard-code stale prices in the frontend.
+OPENAI_INPUT_USD_PER_1M=
+OPENAI_OUTPUT_USD_PER_1M=
 ALLOWED_ORIGINS=https://jinlong-github.github.io,http://localhost:8000

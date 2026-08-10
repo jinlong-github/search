@@ -49,12 +49,18 @@ jobs:
           node --check site/research-os-v15-map.js
           node --check site/research-os-v15-style.js
           node --check site/research-os-v16-zh.js
+          node --check site/telemetry-v19.js
+          node --check site/settings-v19.js
+          node --check site/control-v19.js
+          node --check site/ai-v18.js
           node --check worker/src/index.js
           test -s site/research-v13.css
           test -s site/research-v14.css
           test -s site/research-os-v15.css
           test -s site/research-os-v15-polish.css
           test -s site/research-os-v16.css
+          test -s site/control-v19.css
+          test -s site/control-v19-mobile.css
           grep -q '科研情报系统' site/index.html
           grep -q '科研情报操作系统' site/index.html
           grep -q 'research-v14.js?v=14.1' site/index.html
@@ -65,8 +71,42 @@ jobs:
           grep -q 'research-os-v15-style.js?v=15' site/index.html
           grep -q 'research-os-v16.css?v=16' site/index.html
           grep -q 'research-os-v16-zh.js?v=16' site/index.html
+          grep -q 'telemetry-v19.js?v=19' site/index.html
+          grep -q 'settings-v19.js?v=19' site/index.html
+          grep -q 'control-v19.js?v=19' site/index.html
+          grep -q 'control-v19.css?v=19' site/index.html
+          grep -q 'control-v19-mobile.css?v=19' site/index.html
           grep -q "style-src 'self'" site/index.html
           grep -q 'if (node.textContent !== next)' site/research-os-v15.js
+          grep -q 'OPENAI_INPUT_USD_PER_1M' worker/.dev.vars.example
+          grep -q 'OPENAI_OUTPUT_USD_PER_1M' worker/.dev.vars.example
+          if grep -Eq '<[^>]+[[:space:]]style=' site/control-v19.js; then
+            echo 'Inline HTML style detected in v19 control center.'
+            exit 1
+          fi
+
+      - name: Worker usage and cost diagnostics
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import worker from './worker/src/index.js';
+          const env={OPENAI_API_KEY:'test-only',OPENAI_MODEL:'test-model',OPENAI_INPUT_USD_PER_1M:'2',OPENAI_OUTPUT_USD_PER_1M:'8'};
+          const status=await worker.fetch(new Request('https://worker.test/api/status'),env);
+          const statusData=await status.json();
+          if (!statusData.ai?.pricing?.configured) throw new Error('pricing status missing');
+          globalThis.fetch=async()=>new Response(JSON.stringify({
+            id:'resp_test',
+            output:[{content:[{type:'output_text',text:'{"summaries":[{"key":"paper:1","summary":"测试中文摘要"}]}'}]}],
+            usage:{input_tokens:1000,output_tokens:250,total_tokens:1250,input_tokens_details:{cached_tokens:100},output_tokens_details:{reasoning_tokens:50}}
+          }),{status:200,headers:{'Content-Type':'application/json'}});
+          const req=new Request('https://worker.test/api/ai/summaries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:[{key:'paper:1',type:'paper',title:'Test paper',text:'Source abstract with enough technical context for the test.'}]})});
+          const response=await worker.fetch(req,env);
+          const data=await response.json();
+          if (!response.ok) throw new Error(JSON.stringify(data));
+          if (data.usage?.total_tokens!==1250) throw new Error('usage missing');
+          if (Math.abs(data.estimated_cost_usd-0.004)>1e-9) throw new Error(`cost mismatch ${data.estimated_cost_usd}`);
+          if (data.summaries?.[0]?.summary!=='测试中文摘要') throw new Error('summary parse failed');
+          NODE
 
       - name: Local Research OS workflow test
         shell: bash
@@ -170,6 +210,21 @@ jobs:
             --dump-dom "http://127.0.0.1:8000/?q=${QUERY}&view=evidence" >/tmp/local-evidence.html 2>/tmp/local-evidence.log
           grep -q '证据板还是空的' /tmp/local-evidence.html
 
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=6000 \
+            --dump-dom "http://127.0.0.1:8000/?control=1" >/tmp/local-control.html 2>/tmp/local-control.log
+          grep -q 'id="controlCenterDialog"' /tmp/local-control.html
+          grep -q '系统控制中心' /tmp/local-control.html
+          grep -q '模型、Token 与缓存' /tmp/local-control.html
+          grep -q '本轮结果可用性' /tmp/local-control.html
+          grep -q '数据源健康' /tmp/local-control.html
+          grep -q '每个项目使用自己的 AI 策略' /tmp/local-control.html
+
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=6000 \
+            --dump-dom "http://127.0.0.1:8000/?settings=1" >/tmp/local-settings.html 2>/tmp/local-settings.log
+          grep -q 'OPENAI_INPUT_USD_PER_1M' /tmp/local-settings.html
+          grep -q 'OPENAI_OUTPUT_USD_PER_1M' /tmp/local-settings.html
+          grep -q '打开系统控制中心' /tmp/local-settings.html
+
           if grep -q '&amp;amp;' /tmp/local-detail.html; then
             echo 'Double-escaped scholarly metadata detected locally.'
             exit 1
@@ -219,6 +274,10 @@ jobs:
           grep -q 'research-os-v15-style.js?v=15' /tmp/prod-index.html
           grep -q 'research-os-v16.css?v=16' /tmp/prod-index.html
           grep -q 'research-os-v16-zh.js?v=16' /tmp/prod-index.html
+          grep -q 'telemetry-v19.js?v=19' /tmp/prod-index.html
+          grep -q 'settings-v19.js?v=19' /tmp/prod-index.html
+          grep -q 'control-v19.js?v=19' /tmp/prod-index.html
+          grep -q 'control-v19.css?v=19' /tmp/prod-index.html
 
           PROFILE=/tmp/research-os-prod-source
           rm -rf "$PROFILE"
@@ -293,6 +352,25 @@ jobs:
           grep -q '不能据此推断专利空白' /tmp/prod-path.html
           grep -q '不代表引用、专利族、技术转让' /tmp/prod-path.html
 
+          CONTROL_PROFILE=/tmp/research-os-prod-control
+          rm -rf "$CONTROL_PROFILE"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$CONTROL_PROFILE" --virtual-time-budget=7000 \
+            --dump-dom "${PAGE_URL}?control=1&prod=${REVISION}-control" >/tmp/prod-control.html 2>/tmp/prod-control.log
+          grep -q 'id="controlCenterDialog"' /tmp/prod-control.html
+          grep -q '系统控制中心' /tmp/prod-control.html
+          grep -q '模型、Token 与缓存' /tmp/prod-control.html
+          grep -q '本轮结果可用性' /tmp/prod-control.html
+          grep -q '数据源健康' /tmp/prod-control.html
+          grep -q '每个项目使用自己的 AI 策略' /tmp/prod-control.html
+
+          SETTINGS_PROFILE=/tmp/research-os-prod-settings
+          rm -rf "$SETTINGS_PROFILE"
+          "$CHROME" --headless --no-sandbox --disable-gpu --user-data-dir="$SETTINGS_PROFILE" --virtual-time-budget=7000 \
+            --dump-dom "${PAGE_URL}?settings=1&prod=${REVISION}-settings" >/tmp/prod-settings.html 2>/tmp/prod-settings.log
+          grep -q 'OPENAI_INPUT_USD_PER_1M' /tmp/prod-settings.html
+          grep -q 'OPENAI_OUTPUT_USD_PER_1M' /tmp/prod-settings.html
+          grep -q '打开系统控制中心' /tmp/prod-settings.html
+
           if grep -q '&amp;amp;' /tmp/prod-detail.html; then
             echo 'Double-escaped scholarly metadata detected in production.'
             exit 1
@@ -306,20 +384,28 @@ jobs:
             --screenshot=/tmp/research-os-prod-path.png "${PAGE_URL}?q=${VIEW_QUERY}&view=path&screenshot=${REVISION}-path" >/tmp/prod-shot-path.log 2>&1
           "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=36000 --window-size=430,932 \
             --screenshot=/tmp/research-os-prod-mobile.png "${PAGE_URL}?q=${VIEW_QUERY}&screenshot=${REVISION}-mobile" >/tmp/prod-shot-mobile.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=7000 --window-size=1440,1100 \
+            --screenshot=/tmp/research-os-prod-control.png "${PAGE_URL}?control=1&screenshot=${REVISION}-control" >/tmp/prod-shot-control.log 2>&1
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=7000 --window-size=430,1000 \
+            --screenshot=/tmp/research-os-prod-control-mobile.png "${PAGE_URL}?control=1&screenshot=${REVISION}-control-mobile" >/tmp/prod-shot-control-mobile.log 2>&1
           test -s /tmp/research-os-prod-map.png
           test -s /tmp/research-os-prod-timeline.png
           test -s /tmp/research-os-prod-path.png
           test -s /tmp/research-os-prod-mobile.png
-          echo 'Production Chinese Research OS v16 workflow rendered successfully.'
+          test -s /tmp/research-os-prod-control.png
+          test -s /tmp/research-os-prod-control-mobile.png
+          echo 'Production Chinese Research OS v19 workflow rendered successfully.'
 
       - name: Upload Research OS screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: research-ui-v16-zh
+          name: research-ui-v19-control-center
           path: |
             /tmp/research-os-prod-map.png
             /tmp/research-os-prod-timeline.png
             /tmp/research-os-prod-path.png
             /tmp/research-os-prod-mobile.png
+            /tmp/research-os-prod-control.png
+            /tmp/research-os-prod-control-mobile.png
           if-no-files-found: error
           retention-days: 3

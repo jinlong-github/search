@@ -10,6 +10,7 @@
   const saveJson = (key,value) => { try { localStorage.setItem(key,JSON.stringify(value)); } catch {} };
   const settings = () => ({...DEFAULTS,...loadJson(AI_KEY,{})});
   const workerBase = () => clean(localStorage.getItem(WORKER_KEY) || '').replace(/\/+$/,'');
+  const telemetry = () => window.ResearchTelemetry || null;
 
   function stateSafe() {
     try { return state; } catch { return null; }
@@ -69,14 +70,22 @@
 
     const saved = cache();
     const pending = [];
+    let cacheHits = 0;
     candidates.forEach(item => {
       const key = keyFor(item);
       const fingerprint = cacheFingerprint(item,config.style);
       const hit = saved[key];
-      if (hit?.fingerprint === fingerprint && hit?.summary) applySummary(key,hit.summary,'AI 缓存');
-      else pending.push(item);
+      if (hit?.fingerprint === fingerprint && hit?.summary) {
+        applySummary(key,hit.summary,'AI 缓存');
+        cacheHits += 1;
+      } else pending.push(item);
     });
-    if (!pending.length) return;
+    if (cacheHits) telemetry()?.cacheHit(cacheHits);
+    if (pending.length) telemetry()?.cacheMiss(pending.length);
+    if (!pending.length) {
+      setUiStatus(`AI 缓存命中 ${cacheHits} 条摘要`,'ok');
+      return;
+    }
 
     setUiStatus(`AI 正在增强 ${pending.length} 条摘要…`,'loading');
     try {
@@ -93,7 +102,7 @@
         })
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || `AI 请求失败 (${response.status})`);
+      if (!response.ok) throw Object.assign(new Error(data.error || `AI 请求失败 (${response.status})`),{data});
       if (run !== generation) return;
       const summaries = Array.isArray(data.summaries) ? data.summaries : [];
       summaries.forEach(entry => {
@@ -106,9 +115,11 @@
       });
       const trimmed = Object.entries(saved).sort((a,b) => Number(b[1]?.at || 0)-Number(a[1]?.at || 0)).slice(0,120);
       saveJson(CACHE_KEY,Object.fromEntries(trimmed));
-      setUiStatus(`AI 已增强 ${summaries.length} 条摘要`,'ok');
+      telemetry()?.addAiUsage({ok:true,model:data.model || '',count:summaries.length,usage:data.usage || {},estimatedCostUsd:data.estimated_cost_usd});
+      setUiStatus(`AI 已增强 ${summaries.length} 条摘要${cacheHits ? ` · 缓存 ${cacheHits} 条` : ''}`,'ok');
     } catch (error) {
       console.warn('AI summary enhancement failed:', error);
+      telemetry()?.addAiUsage({ok:false,error:error.message || 'AI 请求失败',model:error?.data?.model || '',count:0,usage:error?.data?.usage || {},estimatedCostUsd:error?.data?.estimated_cost_usd});
       setUiStatus(`AI 暂不可用：${error.message}`,'error');
     }
   }

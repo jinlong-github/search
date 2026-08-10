@@ -1,6 +1,7 @@
 const BRAVE_ENDPOINT = 'https://api.search.brave.com/res/v1/web/search';
 const PATENT_ENDPOINT = 'https://search.patentsview.org/api/v1/patent/';
 const OPENAI_RESPONSES_ENDPOINT = 'https://api.openai.com/v1/responses';
+const SERVICE_VERSION = 'research-os-v19';
 const OFFICIAL_DOMAINS = [
   'openai.com','anthropic.com','deepmind.google','ai.google','research.google',
   'microsoft.com','nvidia.com','siemens.com','sw.siemens.com','autodesk.com',
@@ -34,6 +35,29 @@ function clampInt(value, min, max, fallback) {
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 }
 function clean(value='') { return String(value ?? '').replace(/\s+/g,' ').trim(); }
+function numberEnv(value) {
+  const n = Number.parseFloat(String(value ?? '').trim());
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+function pricing(env) {
+  const input = numberEnv(env.OPENAI_INPUT_USD_PER_1M);
+  const output = numberEnv(env.OPENAI_OUTPUT_USD_PER_1M);
+  return {configured:input !== null && output !== null,input_usd_per_million:input,output_usd_per_million:output};
+}
+function usageOf(data) {
+  const usage = data?.usage || {};
+  return {
+    input_tokens:Number(usage.input_tokens || 0),
+    output_tokens:Number(usage.output_tokens || 0),
+    total_tokens:Number(usage.total_tokens || 0),
+    cached_input_tokens:Number(usage.input_tokens_details?.cached_tokens || 0),
+    reasoning_tokens:Number(usage.output_tokens_details?.reasoning_tokens || 0)
+  };
+}
+function estimateCost(usage,rate) {
+  if (!rate.configured) return null;
+  return (usage.input_tokens / 1_000_000) * rate.input_usd_per_million + (usage.output_tokens / 1_000_000) * rate.output_usd_per_million;
+}
 
 async function webSearch(request, env, url) {
   if (!env.BRAVE_SEARCH_API_KEY) return json(request, env, {error:'BRAVE_SEARCH_API_KEY 未配置', code:'BRAVE_KEY_MISSING'}, 503);
@@ -113,17 +137,22 @@ async function aiSummaries(request, env) {
   const lengthRule = style === 'brief' ? '每条 1 句，约 35–60 个中文字符' : style === 'detailed' ? '每条 2–3 句，约 90–150 个中文字符' : '每条 1–2 句，约 55–100 个中文字符';
   const prompt = `你是科研情报检索系统的中文摘要器。请基于提供的标题、来源和原始摘要/片段生成技术上谨慎的中文摘要。\n规则：\n1. ${lengthRule}。\n2. 保留关键英文技术术语、缩写、模型名、标准号。\n3. 不得补充输入中没有的实验结果、性能数字、机构关系、引用关系或专利关系。\n4. 如果信息只够判断主题，就明确写成“该条目主要涉及……”而不是虚构细节。\n5. 返回严格 JSON，不要 Markdown，不要解释。格式：{"summaries":[{"key":"原 key","summary":"中文摘要"}]}。\n\n输入：${JSON.stringify(items)}`;
   const model = clean(env.OPENAI_MODEL || 'gpt-5-mini');
+  const started = Date.now();
   const response = await fetch(OPENAI_RESPONSES_ENDPOINT, {
     method:'POST',
     headers:{'Authorization':`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json','Accept':'application/json'},
     body:JSON.stringify({model,input:prompt,store:false,max_output_tokens:1800})
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) return json(request, env, {error:data?.error?.message || `OpenAI 请求失败 (${response.status})`, code:'OPENAI_ERROR'}, response.status);
+  const usage = usageOf(data);
+  const rate = pricing(env);
+  const estimatedCostUsd = estimateCost(usage,rate);
+  const diagnostics = {model,usage,estimated_cost_usd:estimatedCostUsd,pricing_configured:rate.configured,duration_ms:Math.max(0,Date.now()-started)};
+  if (!response.ok) return json(request, env, {error:data?.error?.message || `OpenAI 请求失败 (${response.status})`, code:'OPENAI_ERROR',...diagnostics}, response.status);
   const parsed = parseModelJson(outputText(data));
   const summaries = Array.isArray(parsed?.summaries) ? parsed.summaries.map(entry => ({key:clean(entry.key),summary:clean(entry.summary)})).filter(entry => entry.key && entry.summary) : [];
-  if (!summaries.length) return json(request, env, {error:'AI 返回内容无法解析为摘要', code:'AI_PARSE_ERROR'}, 502);
-  return json(request, env, {summaries, model, count:summaries.length});
+  if (!summaries.length) return json(request, env, {error:'AI 返回内容无法解析为摘要', code:'AI_PARSE_ERROR',...diagnostics}, 502);
+  return json(request, env, {summaries,count:summaries.length,response_id:clean(data.id || ''),...diagnostics});
 }
 
 export default {
@@ -134,9 +163,9 @@ export default {
       if ((url.pathname === '/' || url.pathname === '/api/status') && request.method === 'GET') {
         const model = clean(env.OPENAI_MODEL || 'gpt-5-mini');
         return json(request, env, {
-          ok:true, service:'research-search-api',
+          ok:true, service:'research-search-api', version:SERVICE_VERSION, timestamp:new Date().toISOString(),
           providers:{brave:Boolean(env.BRAVE_SEARCH_API_KEY), patentsview:Boolean(env.PATENTSVIEW_API_KEY), openai:Boolean(env.OPENAI_API_KEY)},
-          ai:{model, endpoint:'/api/ai/summaries', key_location:'server'}
+          ai:{model, endpoint:'/api/ai/summaries', key_location:'server', pricing:pricing(env)}
         });
       }
       if (url.pathname === '/api/web' && request.method === 'GET') return await webSearch(request, env, url);
