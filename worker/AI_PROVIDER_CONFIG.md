@@ -103,6 +103,20 @@ AI_OUTPUT_USD_PER_1M=<当前输出 Token 单价>
 
 价格不写死在前端，需要你按照当前服务实际价格维护。
 
+## 旧配置兼容
+
+v21 优先使用通用 `AI_*` 变量，但为了避免已有部署突然失效，下列旧名称仍然兼容：
+
+```text
+OPENAI_API_KEY              -> AI_API_KEY
+OPENAI_BASE_URL             -> AI_BASE_URL
+OPENAI_MODEL                -> AI_MODEL
+OPENAI_INPUT_USD_PER_1M     -> AI_INPUT_USD_PER_1M
+OPENAI_OUTPUT_USD_PER_1M    -> AI_OUTPUT_USD_PER_1M
+```
+
+因此你可以逐步迁移，不需要一次性修改现有 Worker。新部署建议统一使用 `AI_*` 命名。
+
 ## 状态检查
 
 部署后访问 Worker：
