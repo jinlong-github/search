@@ -26,14 +26,20 @@ jobs:
           node --check site/settings-v19.js
           node --check site/control-v25-compat.js
           node --check tests/interaction-v25.js
+          node --check tests/environment-capability-v25.js
+          node --check worker/src/entry-v22.js
           test -s site/reliability-v25.css
           grep -q 'providers?.ai' site/settings-v19.js
           grep -q 'providers?.ai' site/control-v25-compat.js
           grep -q 'requestProfile:runtimeProfile' site/settings-v19.js
+          grep -q 'research_copilot:true' worker/src/entry-v22.js
+          grep -q 'Copilot 后端版本未确认' site/settings-v19.js
       - name: Run local site
         run: |
           python3 -m http.server 8000 -d site >/tmp/v25-http.log 2>&1 &
           echo $! >/tmp/v25-http.pid
+      - name: Environment capability audit
+        run: node tests/environment-capability-v25.js
       - name: Full interaction audit
         run: node tests/interaction-v25.js
       - uses: actions/upload-artifact@v4
