@@ -1,0 +1,49 @@
+name: V25 Production Interaction Guard
+
+on:
+  workflow_run:
+    workflows: ["Deploy GitHub Pages"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Install browser harness and CJK fonts
+        run: |
+          npm install --no-save playwright-core@1.54.2
+          if ! fc-list :lang=zh | grep -q .; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+            fc-cache -f
+          fi
+      - name: Verify deployed environment capability states
+        env:
+          BASE_URL: https://jinlong-github.github.io/search/
+        run: node tests/environment-capability-v25.js
+      - name: Verify deployed full-page interactions
+        env:
+          BASE_URL: https://jinlong-github.github.io/search/
+        run: node tests/interaction-v25.js
+      - name: Upload production interaction screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v25-production-interaction
+          path: |
+            /tmp/v25-settings-service.png
+            /tmp/v25-settings-provider.png
+            /tmp/v25-project.png
+            /tmp/v25-mobile-settings.png
+          if-no-files-found: ignore
+          retention-days: 3
