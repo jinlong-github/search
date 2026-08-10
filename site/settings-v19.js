@@ -70,13 +70,15 @@
       const response=await fetch(`${base}/api/status`,{headers:{Accept:'application/json'}});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||`HTTP ${response.status}`);
       const profiles=Array.isArray(data.ai_profiles?.profiles)?data.ai_profiles.profiles:[];
       const aiReady=Boolean(data.providers?.ai||data.providers?.openai||profiles.some(item=>item.key_configured));
+      const copilotReady=Boolean(data.capabilities?.research_copilot);
       const providerName=data.ai?.provider||profiles.find(item=>item.id===data.ai_profiles?.default_profile)?.provider||'AI';
       const model=data.ai?.model||'默认模型';
-      text.textContent=`Worker 已连接 · ${data.service_version||'服务版本未知'} · ${profiles.length||1} 个 AI 档案 · ${aiReady?`${providerName} / ${model} 可用`:'AI Secret 未就绪'}`;
+      text.textContent=`Worker 已连接 · ${data.service_version||'服务版本未知'} · ${profiles.length||1} 个 AI 档案 · ${aiReady?`${providerName} / ${model} 可用`:'AI Secret 未就绪'} · ${copilotReady?'Copilot 已就绪':'Copilot 后端版本未确认'}`;
+      text.dataset.copilotReady=copilotReady?'1':'0';
       const pill=dialog.querySelector('#aiProviderPill');if(pill){pill.textContent=aiReady?'AI 已就绪':'AI 未配置';pill.className=`settings-status-pill ${aiReady?'ok':'warn'}`}
       const modelNode=dialog.querySelector('#aiModelDisplay');if(modelNode)modelNode.textContent=model;
       if(window.ResearchProviderProfiles?.refresh)await window.ResearchProviderProfiles.refresh().catch(()=>{});
-    }catch(error){text.textContent=`Worker 连接失败：${error.message}`}
+    }catch(error){text.textContent=`Worker 连接失败：${error.message}`;delete text.dataset.copilotReady}
   }
 
   dialog.addEventListener('click',event=>{
