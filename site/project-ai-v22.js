@@ -38,11 +38,12 @@
     }
     const select=field.querySelector('[data-project-ai-profile]');
     const value=clean(project.aiProfile||'');
-    const old=select.value;
-    select.innerHTML=profileOptions(value||old);
-    select.value=value;
+    const options=profileOptions(value||select.value);
+    if(select.innerHTML!==options)select.innerHTML=options;
+    if(select.value!==value)select.value=value;
     const header=panel.querySelector('header small');
-    if(header)header.textContent=value?`当前绑定 Provider Profile：${value}。模型和提示词仍可在项目内继续覆盖。`:'项目可单独绑定 Provider Profile、模型和提示词；留空则继承全局设置。';
+    const text=value?`当前绑定 Provider Profile：${value}。模型和提示词仍可在项目内继续覆盖。`:'项目可单独绑定 Provider Profile、模型和提示词；留空则继承全局设置。';
+    if(header&&header.textContent!==text)header.textContent=text;
   }
   function saveProfile(){
     const project=active();const api=projectApi();if(!project||!api?.updateProject)return;
@@ -55,7 +56,7 @@
   dialog.addEventListener('click',event=>{if(event.target.closest('[data-project-ai-save]'))setTimeout(saveProfile,0)});
   dialog.addEventListener('change',event=>{if(event.target.matches('[data-project-ai-profile]'))saveProfile()});
   const canvas=dialog.querySelector('[data-project-canvas]');
-  if(canvas)new MutationObserver(()=>setTimeout(inject,0)).observe(canvas,{childList:true,subtree:true});
+  if(canvas)new MutationObserver(()=>setTimeout(inject,0)).observe(canvas,{childList:true});
   window.addEventListener('research-project-changed',refresh);
   window.addEventListener('research-project-updated',refresh);
   window.addEventListener('research-provider-profiles-changed',()=>setTimeout(inject,0));
