@@ -1,6 +1,7 @@
 (() => {
   const dialog=document.querySelector('#settingsDialog');
   if(!dialog)return;
+  if(!document.querySelector('link[data-v25-reliability]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./reliability-v25.css?v=25';link.dataset.v25Reliability='';document.head.appendChild(link)}
   const AI_KEY='research-search:ai-settings-v1';
   const WORKER_KEY='research-search:worker-url';
   const clean=value=>String(value??'').trim();
