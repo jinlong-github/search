@@ -1,15 +1,24 @@
 (() => {
-  // Load the presentation layer from one stable bootstrap hook so the long-lived
+  // Load presentation layers from one stable bootstrap hook so the long-lived
   // application script order in index.html stays untouched.
-  const sciFiCss = document.createElement('link');
-  sciFiCss.rel = 'stylesheet';
-  sciFiCss.href = './sci-fi-v23.css?v=23';
-  document.head.appendChild(sciFiCss);
+  const loadStyle = (href) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  };
 
-  const sciFiScript = document.createElement('script');
-  sciFiScript.src = './sci-fi-v23.js?v=23';
-  sciFiScript.async = false;
-  document.head.appendChild(sciFiScript);
+  const loadScript = (src) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false;
+    document.head.appendChild(script);
+  };
+
+  loadStyle('./sci-fi-v23.css?v=23');
+  loadScript('./sci-fi-v23.js?v=23');
+  loadStyle('./ultimate-v26.css?v=26');
+  loadScript('./ultimate-v26.js?v=26');
 
   // Reliability-first bootstrap: this search app depends on live APIs, so stale
   // service-worker caches are more harmful than offline support during development.
