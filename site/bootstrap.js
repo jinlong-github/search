@@ -28,6 +28,7 @@
   window.addEventListener('load', () => {
     loadScript('./simple-settings-v29.js?v=29');
     loadScript('./reference-v31.js?v=31');
+    loadScript('./reference-v31-runtime-fix.js?v=31.3');
   }, {once:true});
 
   // Live research depends on current APIs; stale service-worker caches are counterproductive.
