@@ -1,0 +1,19 @@
+/* Final v31 dialog sizing: explicitly undo the fixed v25 management-console grid. */
+body.reference-v31.simple-settings-v29 #settingsDialog.settings-center[open]{
+  display:block!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:calc(100vh - 32px)!important;
+  grid-template-rows:none!important;
+}
+body.reference-v31 .simple-settings-v29-shell{
+  display:flex!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:calc(100vh - 32px)!important;
+}
+body.reference-v31 .simple-settings-v29-content{
+  flex:0 1 auto!important;
+  min-height:0!important;
+  overflow:auto!important;
+}

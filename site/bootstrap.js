@@ -1,5 +1,5 @@
 (() => {
-  // Load the final presentation layer from one stable bootstrap hook.
+  // Keep one deterministic presentation bootstrap. Business scripts remain in index.html.
   const loadStyle = (href) => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -14,21 +14,23 @@
     document.head.appendChild(script);
   };
 
-  // v30 deliberately retires the fabricated sci-fi/HUD layers from v23/v26/v27.
-  // Technology should feel credible through hierarchy, motion and real data—not fake telemetry.
-  loadStyle('./product-v30.css?v=30');
-  loadScript('./product-v30.js?v=30');
-
   // AI configuration remains intentionally limited to URL / API / Name.
   loadStyle('./simple-ai-v28.css?v=28');
   loadScript('./simple-ai-v28.js?v=28');
   loadStyle('./simple-settings-v29.css?v=29');
 
-  // v29 intentionally mounts after every legacy deferred settings script has run.
-  window.addEventListener('load', () => loadScript('./simple-settings-v29.js?v=29'), {once:true});
+  // v31 is the single visible research shell. The correction sheet normalizes
+  // legacy research containers that still carry light-mode !important rules.
+  loadStyle('./reference-v31.css?v=31');
+  loadStyle('./reference-v31-correction.css?v=31.1');
+  loadStyle('./reference-v31-dialog-fit.css?v=31.2');
 
-  // Reliability-first bootstrap: this search app depends on live APIs, so stale
-  // service-worker caches are more harmful than offline support during development.
+  window.addEventListener('load', () => {
+    loadScript('./simple-settings-v29.js?v=29');
+    loadScript('./reference-v31.js?v=31');
+  }, {once:true});
+
+  // Live research depends on current APIs; stale service-worker caches are counterproductive.
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations()
       .then(regs => Promise.all(regs.map(reg => reg.unregister())))
