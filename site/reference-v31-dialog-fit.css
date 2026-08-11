@@ -1,0 +1,16 @@
+/* Final v31 dialog sizing: legacy settings styles used a fixed management-console height. */
+body.reference-v31.simple-settings-v29 #settingsDialog.settings-center{
+  height:auto!important;
+  min-height:0!important;
+  max-height:calc(100vh - 32px)!important;
+}
+body.reference-v31 .simple-settings-v29-shell{
+  height:auto!important;
+  min-height:0!important;
+  max-height:calc(100vh - 32px)!important;
+}
+body.reference-v31 .simple-settings-v29-content{
+  flex:0 1 auto!important;
+  min-height:0!important;
+  overflow:auto!important;
+}
