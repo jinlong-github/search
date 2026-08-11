@@ -1,4 +1,4 @@
-import worker from './entry-v22.js';
+import worker from './entry-v22-legacy.js';
 
 function clean(value=''){return String(value??'').replace(/\s+/g,' ').trim()}
 function cors(request,env){
