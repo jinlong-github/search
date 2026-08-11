@@ -1,0 +1,46 @@
+/* v28: one AI config, three fields. */
+body.simple-ai-v28 [data-settings-jump="provider"],
+body.simple-ai-v28 [data-settings-section="provider"],
+body.simple-ai-v28 [data-project-ai-v21],
+body.simple-ai-v28 [data-control-projects]{display:none!important}
+
+body.simple-ai-v28 [data-settings-section="ai"]{scroll-margin-top:18px}
+body.simple-ai-v28 .simple-ai-v28-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+body.simple-ai-v28 .simple-ai-v28-head span{display:block;margin-bottom:5px;color:#68d8e9;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+body.simple-ai-v28 .simple-ai-v28-head h3{margin:0;color:#effcff;font-size:21px;letter-spacing:-.025em}
+body.simple-ai-v28 .simple-ai-v28-pill{flex:none;border:1px solid rgba(92,220,240,.14);border-radius:999px;padding:6px 9px;background:rgba(65,231,255,.04);color:#789ba5;font-size:11px;font-style:normal}
+body.simple-ai-v28 .simple-ai-v28-pill.ok{border-color:rgba(95,235,185,.22);color:#8ce8c3;background:rgba(95,235,185,.055)}
+body.simple-ai-v28 .simple-ai-v28-pill.fail{border-color:rgba(255,102,140,.25);color:#ff9caf;background:rgba(255,102,140,.055)}
+
+body.simple-ai-v28 .simple-ai-v28-form{display:grid;gap:13px}
+body.simple-ai-v28 .simple-ai-v28-field{display:grid;gap:7px}
+body.simple-ai-v28 .simple-ai-v28-field>span{color:#a9c4cc;font-size:12px;font-weight:700}
+body.simple-ai-v28 .simple-ai-v28-field input{width:100%;min-height:46px;border:1px solid rgba(82,215,236,.16);border-radius:10px;outline:0;background:rgba(2,11,18,.7);color:#ecfbff;padding:0 13px;font:500 13px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
+body.simple-ai-v28 .simple-ai-v28-field input:focus{border-color:rgba(83,229,249,.5);background:rgba(4,16,25,.88);box-shadow:0 0 0 3px rgba(65,231,255,.055)}
+body.simple-ai-v28 .simple-ai-v28-field input::placeholder{color:#496b75}
+body.simple-ai-v28 .simple-ai-v28-api-wrap{position:relative}
+body.simple-ai-v28 .simple-ai-v28-api-wrap input{padding-right:68px}
+body.simple-ai-v28 .simple-ai-v28-reveal{position:absolute;right:8px;top:50%;translate:0 -50%;border:0;background:transparent;color:#6f929d;cursor:pointer;padding:7px 8px;font-size:11px}
+body.simple-ai-v28 .simple-ai-v28-reveal:hover{color:#d9f8fc}
+
+body.simple-ai-v28 .simple-ai-v28-note{margin:13px 0 0;padding:11px 12px;border:1px solid rgba(77,211,232,.09);border-radius:9px;background:rgba(65,231,255,.025);color:#718f99;font-size:11px;line-height:1.65}
+body.simple-ai-v28 .simple-ai-v28-note strong{color:#9dc1c9}
+body.simple-ai-v28 .simple-ai-v28-actions{display:flex;align-items:center;gap:8px;margin-top:14px}
+body.simple-ai-v28 .simple-ai-v28-actions button{min-height:38px;border-radius:8px;padding:0 14px;cursor:pointer}
+body.simple-ai-v28 .simple-ai-v28-actions .primary{border:1px solid rgba(101,239,213,.4);background:linear-gradient(120deg,#45dff4,#6ceabd);color:#021416;font-weight:800}
+body.simple-ai-v28 .simple-ai-v28-actions .secondary{border:1px solid rgba(78,215,236,.16);background:rgba(6,20,29,.62);color:#a9c9d0}
+body.simple-ai-v28 .simple-ai-v28-status{min-height:20px;margin-top:10px;color:#71949f;font-size:11px;line-height:1.5}
+body.simple-ai-v28 .simple-ai-v28-status.ok{color:#79dcb5}
+body.simple-ai-v28 .simple-ai-v28-status.fail{color:#ff91a7}
+
+/* Remove stale AI deployment knobs from other settings pages. */
+body.simple-ai-v28 .settings-config-list>div:has(code:nth-child(2)),
+body.simple-ai-v28 .settings-security-note{ }
+body.simple-ai-v28 [data-simple-ai-hidden="1"]{display:none!important}
+
+@media(max-width:620px){
+  body.simple-ai-v28 .simple-ai-v28-head{display:block}
+  body.simple-ai-v28 .simple-ai-v28-pill{display:inline-block;margin-top:10px}
+  body.simple-ai-v28 .simple-ai-v28-actions{display:grid;grid-template-columns:1fr 1fr}
+  body.simple-ai-v28 .simple-ai-v28-actions button{width:100%}
+}
