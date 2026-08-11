@@ -19,6 +19,8 @@
   loadScript('./sci-fi-v23.js?v=23');
   loadStyle('./ultimate-v26.css?v=26');
   loadScript('./ultimate-v26.js?v=26');
+  loadStyle('./clarity-v27.css?v=27');
+  loadScript('./clarity-v27.js?v=27');
 
   // Reliability-first bootstrap: this search app depends on live APIs, so stale
   // service-worker caches are more harmful than offline support during development.
