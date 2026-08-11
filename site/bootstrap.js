@@ -19,9 +19,10 @@
   loadScript('./simple-ai-v28.js?v=28');
   loadStyle('./simple-settings-v29.css?v=29');
 
-  // v31 replaces the former v30/v26 visual shells with one reference-driven layout.
-  // It restructures existing DOM while preserving all stable IDs and business handlers.
+  // v31 is the single visible research shell. The correction sheet normalizes
+  // legacy research containers that still carry light-mode !important rules.
   loadStyle('./reference-v31.css?v=31');
+  loadStyle('./reference-v31-correction.css?v=31.1');
 
   window.addEventListener('load', () => {
     loadScript('./simple-settings-v29.js?v=29');
