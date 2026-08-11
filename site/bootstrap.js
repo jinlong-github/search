@@ -1,6 +1,5 @@
 (() => {
-  // Load presentation layers from one stable bootstrap hook so the long-lived
-  // application script order in index.html stays untouched.
+  // Load the final presentation layer from one stable bootstrap hook.
   const loadStyle = (href) => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -15,18 +14,17 @@
     document.head.appendChild(script);
   };
 
-  loadStyle('./sci-fi-v23.css?v=23');
-  loadScript('./sci-fi-v23.js?v=23');
-  loadStyle('./ultimate-v26.css?v=26');
-  loadScript('./ultimate-v26.js?v=26');
-  loadStyle('./clarity-v27.css?v=27');
-  loadScript('./clarity-v27.js?v=27');
+  // v30 deliberately retires the fabricated sci-fi/HUD layers from v23/v26/v27.
+  // Technology should feel credible through hierarchy, motion and real data—not fake telemetry.
+  loadStyle('./product-v30.css?v=30');
+  loadScript('./product-v30.js?v=30');
+
+  // AI configuration remains intentionally limited to URL / API / Name.
   loadStyle('./simple-ai-v28.css?v=28');
   loadScript('./simple-ai-v28.js?v=28');
   loadStyle('./simple-settings-v29.css?v=29');
 
   // v29 intentionally mounts after every legacy deferred settings script has run.
-  // This makes the visible configuration surface deterministic: only URL/API/Name.
   window.addEventListener('load', () => loadScript('./simple-settings-v29.js?v=29'), {once:true});
 
   // Reliability-first bootstrap: this search app depends on live APIs, so stale
