@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#172033" />
+  <meta name="theme-color" content="#07111f" />
   <meta name="description" content="科研情报系统：论文、专利、技术文章与工程资料的一体化技术研究工作台" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.crossref.org https://api.openalex.org https://hn.algolia.com https://search.patentsview.org https://*.workers.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
   <title>科研情报系统 · 技术研究工作台</title>
@@ -32,8 +32,16 @@
   <link rel="stylesheet" href="./project-v20-polish.css?v=20" />
   <link rel="stylesheet" href="./ai-provider-v21.css?v=21" />
   <link rel="stylesheet" href="./provider-profiles-v22.css?v=22" />
+
+  <!-- v31 is part of the initial document, not a post-load skin. These files are
+       deliberately last so one visual system owns the first paint. -->
+  <link rel="stylesheet" href="./simple-ai-v28.css?v=28" />
+  <link rel="stylesheet" href="./simple-settings-v29.css?v=29" />
+  <link rel="stylesheet" href="./reference-v31.css?v=31" />
+  <link rel="stylesheet" href="./reference-v31-correction.css?v=31.1" />
+  <link rel="stylesheet" href="./reference-v31-dialog-fit.css?v=31.2" />
 </head>
-<body>
+<body class="reference-v31">
   <header class="topbar">
     <a class="brand" href="./" aria-label="科研情报系统首页">
       <span class="brand-mark" aria-hidden="true"><span>研</span><i></i></span>
@@ -105,7 +113,7 @@
 
   <footer><span>科研情报系统</span><a href="https://github.com/jinlong-github/search" target="_blank" rel="noreferrer">GitHub</a></footer>
 
-  <script src="./bootstrap.js?v=31" defer></script>
+  <script src="./bootstrap.js?v=31.4" defer></script>
   <script src="./telemetry-v19.js?v=19" defer></script>
   <script src="./settings-v18.js?v=18" defer></script>
   <script src="./settings-v19.js?v=19" defer></script>
@@ -134,5 +142,12 @@
   <script src="./project-v20-results.js?v=20" defer></script>
   <script src="./project-ai-v21.js?v=21" defer></script>
   <script src="./project-ai-v22.js?v=22" defer></script>
+
+  <!-- Presentation scripts execute deterministically after the legacy business
+       modules, but before DOMContentLoaded. No window-load race. -->
+  <script src="./simple-ai-v28.js?v=28" defer></script>
+  <script src="./reference-v31.js?v=31" defer></script>
+  <script src="./simple-settings-v29.js?v=29" defer></script>
+  <script src="./reference-v31-runtime-fix.js?v=31.3" defer></script>
 </body>
 </html>
