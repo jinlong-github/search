@@ -23,6 +23,11 @@
   loadScript('./clarity-v27.js?v=27');
   loadStyle('./simple-ai-v28.css?v=28');
   loadScript('./simple-ai-v28.js?v=28');
+  loadStyle('./simple-settings-v29.css?v=29');
+
+  // v29 intentionally mounts after every legacy deferred settings script has run.
+  // This makes the visible configuration surface deterministic: only URL/API/Name.
+  window.addEventListener('load', () => loadScript('./simple-settings-v29.js?v=29'), {once:true});
 
   // Reliability-first bootstrap: this search app depends on live APIs, so stale
   // service-worker caches are more harmful than offline support during development.

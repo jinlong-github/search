@@ -1,0 +1,173 @@
+/* v29: one visible configuration surface, three AI fields only. */
+body.simple-settings-v29 #settingsDialog.settings-center{
+  width:min(620px,calc(100vw - 28px));
+  max-height:min(760px,calc(100vh - 28px));
+  padding:0;
+  overflow:hidden;
+  border:1px solid rgba(89,225,246,.16);
+  border-radius:18px;
+  background:linear-gradient(180deg,rgba(7,18,27,.98),rgba(3,10,16,.99));
+  box-shadow:0 28px 90px rgba(0,0,0,.48),0 0 0 1px rgba(93,229,248,.03) inset;
+}
+body.simple-settings-v29 #settingsDialog::backdrop{
+  background:rgba(0,5,9,.72);
+  backdrop-filter:blur(12px);
+}
+body.simple-settings-v29 #settingsDialog>.settings-center-head,
+body.simple-settings-v29 #settingsDialog>.settings-center-layout,
+body.simple-settings-v29 #settingsDialog>.settings-center-footer{
+  display:none!important;
+}
+body.simple-settings-v29 .simple-settings-v29-shell{
+  display:flex;
+  flex-direction:column;
+  max-height:min(760px,calc(100vh - 28px));
+}
+body.simple-settings-v29 .simple-settings-v29-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+  padding:24px 24px 18px;
+  border-bottom:1px solid rgba(85,220,242,.1);
+}
+body.simple-settings-v29 .simple-settings-v29-header span{
+  display:block;
+  margin-bottom:6px;
+  color:#63dcee;
+  font:600 10px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+body.simple-settings-v29 .simple-settings-v29-header h2{
+  margin:0;
+  color:#edfaff;
+  font-size:24px;
+  line-height:1.15;
+  letter-spacing:-.025em;
+}
+body.simple-settings-v29 .simple-settings-v29-header p{
+  margin:8px 0 0;
+  color:#7898a3;
+  font-size:13px;
+  line-height:1.65;
+}
+body.simple-settings-v29 .simple-settings-v29-close{
+  flex:0 0 auto;
+  width:34px;
+  height:34px;
+  padding:0;
+  border:1px solid rgba(99,220,239,.13);
+  border-radius:9px;
+  background:rgba(255,255,255,.02);
+  color:#91adb5;
+  font-size:22px;
+  cursor:pointer;
+}
+body.simple-settings-v29 .simple-settings-v29-close:hover{
+  color:#effcff;
+  border-color:rgba(99,220,239,.28);
+  background:rgba(69,220,244,.06);
+}
+body.simple-settings-v29 .simple-settings-v29-content{
+  overflow:auto;
+  padding:22px 24px 24px;
+}
+body.simple-settings-v29 .simple-settings-v29-content>[data-settings-section="ai"]{
+  display:block!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+body.simple-settings-v29 .simple-ai-v28-head{
+  display:none!important;
+}
+body.simple-settings-v29 .simple-ai-v28-form{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:14px!important;
+}
+body.simple-settings-v29 .simple-ai-v28-field{
+  display:grid!important;
+  gap:7px!important;
+  margin:0!important;
+}
+body.simple-settings-v29 .simple-ai-v28-field>span{
+  color:#c5e4e9!important;
+  font-size:12px!important;
+  font-weight:650!important;
+}
+body.simple-settings-v29 .simple-ai-v28-field input{
+  width:100%!important;
+  min-height:48px!important;
+  box-sizing:border-box!important;
+  border:1px solid rgba(94,222,242,.14)!important;
+  border-radius:10px!important;
+  outline:none!important;
+  background:rgba(2,10,16,.76)!important;
+  color:#ecfbff!important;
+  padding:0 13px!important;
+  font:500 14px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace!important;
+  box-shadow:none!important;
+}
+body.simple-settings-v29 .simple-ai-v28-field input:focus{
+  border-color:rgba(91,226,247,.52)!important;
+  box-shadow:0 0 0 3px rgba(68,218,241,.07)!important;
+}
+body.simple-settings-v29 .simple-ai-v28-api-wrap{
+  position:relative;
+}
+body.simple-settings-v29 .simple-ai-v28-api-wrap input{
+  padding-right:70px!important;
+}
+body.simple-settings-v29 .simple-ai-v28-reveal{
+  position:absolute;
+  top:7px;
+  right:7px;
+  height:34px;
+  padding:0 10px;
+  border:0;
+  border-radius:7px;
+  background:rgba(69,218,241,.07);
+  color:#7fc3ce;
+  cursor:pointer;
+}
+body.simple-settings-v29 .simple-ai-v28-note{
+  margin:16px 0 0!important;
+  padding:12px 13px!important;
+  border:1px solid rgba(91,221,242,.09)!important;
+  border-radius:10px!important;
+  background:rgba(65,220,242,.025)!important;
+  color:#6f9099!important;
+  font-size:12px!important;
+  line-height:1.65!important;
+}
+body.simple-settings-v29 .simple-ai-v28-note strong{color:#a9cdd4!important}
+body.simple-settings-v29 .simple-ai-v28-actions{
+  display:flex!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  margin-top:18px!important;
+}
+body.simple-settings-v29 .simple-ai-v28-actions button{
+  min-height:40px!important;
+  padding:0 16px!important;
+  border-radius:9px!important;
+}
+body.simple-settings-v29 .simple-ai-v28-status{
+  min-height:18px;
+  margin-top:12px!important;
+  color:#7fa2ac!important;
+  font-size:12px!important;
+  line-height:1.5!important;
+}
+body.simple-settings-v29 .simple-ai-v28-status.ok{color:#82ddbd!important}
+body.simple-settings-v29 .simple-ai-v28-status.fail{color:#ff9a9a!important}
+body.simple-settings-v29 [data-open-settings]{display:none!important}
+@media(max-width:560px){
+  body.simple-settings-v29 #settingsDialog.settings-center{width:calc(100vw - 18px)}
+  body.simple-settings-v29 .simple-settings-v29-header{padding:20px 18px 15px}
+  body.simple-settings-v29 .simple-settings-v29-content{padding:18px}
+}
