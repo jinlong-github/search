@@ -16,19 +16,27 @@
   };
 
   const fitSimpleDialog=(dialog,shell)=>{
-    dialog.style.setProperty('height','auto','important');
+    const compact='min(480px, calc(100vh - 32px))';
+    dialog.style.setProperty('height',compact,'important');
+    dialog.style.setProperty('block-size',compact,'important');
     dialog.style.setProperty('min-height','0','important');
-    dialog.style.setProperty('max-height','calc(100vh - 32px)','important');
+    dialog.style.setProperty('min-block-size','0','important');
+    dialog.style.setProperty('max-height',compact,'important');
+    dialog.style.setProperty('max-block-size',compact,'important');
     dialog.style.setProperty('grid-template-rows','none','important');
-    shell.style.setProperty('height','auto','important');
+    shell.style.setProperty('height','100%','important');
+    shell.style.setProperty('block-size','100%','important');
     shell.style.setProperty('min-height','0','important');
-    shell.style.setProperty('max-height','calc(100vh - 32px)','important');
+    shell.style.setProperty('min-block-size','0','important');
+    shell.style.setProperty('max-height','100%','important');
+    shell.style.setProperty('max-block-size','100%','important');
     shell.style.setProperty('flex','0 1 auto','important');
     const content=shell.querySelector('.simple-settings-v29-content');
     if(content){
       content.style.setProperty('height','auto','important');
       content.style.setProperty('min-height','0','important');
       content.style.setProperty('flex','0 1 auto','important');
+      content.style.setProperty('overflow','auto','important');
     }
   };
 
