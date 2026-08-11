@@ -29,9 +29,39 @@ jobs:
           node --check site/reference-v31.js
           test -s site/reference-v31.css
           test -s site/reference-v31-correction.css
+          test -s site/reference-v31-dialog-fit.css
           grep -q 'reference-v31.css?v=31' site/bootstrap.js
           grep -q 'reference-v31-correction.css?v=31.1' site/bootstrap.js
+          grep -q 'reference-v31-dialog-fit.css?v=31.2' site/bootstrap.js
           grep -q 'reference-v31.js?v=31' site/bootstrap.js
+
+      - name: Add preview-only computed-style probe
+        run: |
+          cat > site/v31-preview-probe.js <<'JS'
+          window.addEventListener('load',()=>setTimeout(()=>{
+            const dialog=document.querySelector('#settingsDialog');
+            if(!dialog)return;
+            const style=getComputedStyle(dialog);
+            const shell=dialog.querySelector('.simple-settings-v29-shell');
+            const shellStyle=shell?getComputedStyle(shell):null;
+            const probe=document.createElement('pre');
+            probe.id='v31ComputedProbe';
+            probe.hidden=true;
+            probe.textContent=JSON.stringify({
+              dialog:{height:style.height,minHeight:style.minHeight,maxHeight:style.maxHeight,display:style.display,gridTemplateRows:style.gridTemplateRows,blockSize:style.blockSize},
+              rect:{height:Math.round(dialog.getBoundingClientRect().height),width:Math.round(dialog.getBoundingClientRect().width)},
+              shell:shellStyle?{height:shellStyle.height,minHeight:shellStyle.minHeight,maxHeight:shellStyle.maxHeight,display:shellStyle.display,blockSize:shellStyle.blockSize}:null
+            });
+            document.body.appendChild(probe);
+          },5000),{once:true});
+          JS
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('site/index.html')
+          s=p.read_text()
+          s=s.replace('</body>','<script src="./v31-preview-probe.js"></script>\n</body>')
+          p.write_text(s)
+          PY
 
       - name: Launch local site
         run: |
@@ -55,7 +85,7 @@ jobs:
           test -s /tmp/v31-settings.png
           test -s /tmp/v31-mobile.png
 
-      - name: DOM smoke
+      - name: DOM and computed-style smoke
         shell: bash
         run: |
           set -euo pipefail
@@ -65,6 +95,9 @@ jobs:
           grep -q 'RESEARCH OS' /tmp/v31-dom.html
           grep -q '研究信号' /tmp/v31-dom.html
           grep -q 'data-v31-view="map"' /tmp/v31-dom.html
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=11000 --dump-dom 'http://127.0.0.1:8000/?settings=1' >/tmp/v31-settings-dom.html
+          echo 'COMPUTED SETTINGS LAYOUT:'
+          grep -o '<pre id="v31ComputedProbe"[^>]*>[^<]*' /tmp/v31-settings-dom.html || true
 
       - name: Upload previews
         uses: actions/upload-artifact@v4
@@ -76,4 +109,5 @@ jobs:
             /tmp/v31-map.png
             /tmp/v31-settings.png
             /tmp/v31-mobile.png
+            /tmp/v31-settings-dom.html
           retention-days: 3
