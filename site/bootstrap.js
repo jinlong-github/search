@@ -23,6 +23,7 @@
   // legacy research containers that still carry light-mode !important rules.
   loadStyle('./reference-v31.css?v=31');
   loadStyle('./reference-v31-correction.css?v=31.1');
+  loadStyle('./reference-v31-dialog-fit.css?v=31.2');
 
   window.addEventListener('load', () => {
     loadScript('./simple-settings-v29.js?v=29');
