@@ -1,0 +1,63 @@
+name: V31 Preview Audit
+
+on:
+  push:
+    branches: [agent/reference-ui-v31-impl]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Syntax checks
+        run: |
+          node --check site/bootstrap.js
+          node --check site/reference-v31.js
+          test -s site/reference-v31.css
+          grep -q 'reference-v31.css?v=31' site/bootstrap.js
+          grep -q 'reference-v31.js?v=31' site/bootstrap.js
+
+      - name: Launch local site
+        run: |
+          python3 -m http.server 8000 -d site >/tmp/v31-http.log 2>&1 &
+          echo $! > /tmp/v31-http.pid
+          sleep 2
+
+      - name: Capture desktop previews
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1000 --virtual-time-budget=6000 --screenshot=/tmp/v31-home.png http://127.0.0.1:8000/
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1000 --virtual-time-budget=24000 --screenshot=/tmp/v31-search.png 'http://127.0.0.1:8000/?q=machine%20learning'
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --virtual-time-budget=7000 --screenshot=/tmp/v31-mobile.png http://127.0.0.1:8000/
+          test -s /tmp/v31-home.png
+          test -s /tmp/v31-search.png
+          test -s /tmp/v31-mobile.png
+
+      - name: DOM smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=8000 --dump-dom http://127.0.0.1:8000/ >/tmp/v31-dom.html
+          grep -q 'class="v31-app"' /tmp/v31-dom.html
+          grep -q 'RESEARCH OS' /tmp/v31-dom.html
+          grep -q '研究信号' /tmp/v31-dom.html
+          grep -q 'data-v31-view="map"' /tmp/v31-dom.html
+
+      - name: Upload previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: v31-preview
+          path: |
+            /tmp/v31-home.png
+            /tmp/v31-search.png
+            /tmp/v31-mobile.png
+          retention-days: 3
