@@ -15,11 +15,29 @@
     });
   };
 
+  const fitSimpleDialog=(dialog,shell)=>{
+    dialog.style.setProperty('height','auto','important');
+    dialog.style.setProperty('min-height','0','important');
+    dialog.style.setProperty('max-height','calc(100vh - 32px)','important');
+    dialog.style.setProperty('grid-template-rows','none','important');
+    shell.style.setProperty('height','auto','important');
+    shell.style.setProperty('min-height','0','important');
+    shell.style.setProperty('max-height','calc(100vh - 32px)','important');
+    shell.style.setProperty('flex','0 1 auto','important');
+    const content=shell.querySelector('.simple-settings-v29-content');
+    if(content){
+      content.style.setProperty('height','auto','important');
+      content.style.setProperty('min-height','0','important');
+      content.style.setProperty('flex','0 1 auto','important');
+    }
+  };
+
   const mount=()=>{
     const dialog=document.querySelector('#settingsDialog.settings-center');
     const aiSection=dialog?.querySelector('[data-settings-section="ai"]');
     if(!dialog||!aiSection||aiSection.dataset.simpleAiV28!=='1')return false;
-    if(dialog.querySelector('.simple-settings-v29-shell'))return true;
+    const existing=dialog.querySelector('.simple-settings-v29-shell');
+    if(existing){fitSimpleDialog(dialog,existing);return true}
 
     body.classList.add('simple-settings-v29');
 
@@ -38,6 +56,7 @@
 
     shell.querySelector('.simple-settings-v29-content').appendChild(aiSection);
     dialog.appendChild(shell);
+    fitSimpleDialog(dialog,shell);
 
     const note=aiSection.querySelector('.simple-ai-v28-note');
     if(note)note.innerHTML='<strong>只保留三个配置。</strong> URL 填 OpenAI-compatible 地址，API 填密钥，Name 填模型名称。密钥只保存在当前浏览器。';
@@ -45,6 +64,7 @@
     shell.querySelector('.simple-settings-v29-close').addEventListener('click',()=>dialog.close());
     dialog.addEventListener('cancel',()=>dialog.close());
 
+    new MutationObserver(()=>fitSimpleDialog(dialog,shell)).observe(dialog,{attributes:true,attributeFilter:['open','class']});
     hideLegacyEntryPoints();
     return true;
   };
