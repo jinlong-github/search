@@ -53,6 +53,9 @@ body.reference-v31 .status-line{color:var(--v33-muted)!important}
 
 /* Search: one clear primary action, no neon gradient. */
 body.reference-v31 .search-box{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
   border-color:var(--v33-border-strong)!important;
   border-radius:10px!important;
   background:var(--v33-surface)!important;
@@ -63,9 +66,16 @@ body.reference-v31 .search-box:focus-within{
   box-shadow:var(--v33-focus)!important;
 }
 body.reference-v31 .search-icon{display:none!important}
-body.reference-v31 #queryInput{color:var(--v33-text)!important}
+body.reference-v31 #queryInput{
+  flex:1 1 auto!important;
+  width:auto!important;
+  min-width:0!important;
+  color:var(--v33-text)!important;
+}
 body.reference-v31 #queryInput::placeholder{color:var(--v33-faint)!important}
 body.reference-v31 .search-btn{
+  flex:0 0 auto!important;
+  margin-left:auto!important;
   min-width:72px!important;
   border:1px solid var(--v33-accent)!important;
   border-radius:8px!important;
@@ -288,14 +298,14 @@ body.reference-v31 .ux-save{
   min-width:58px!important;
   height:28px!important;
   padding:0 8px!important;
-  border:1px solid transparent!important;
+  border:1px solid var(--v33-border)!important;
   border-radius:6px!important;
   background:transparent!important;
   color:var(--v33-muted)!important;
   font:560 9.5px/1 inherit!important;
 }
 body.reference-v31 .ux-save:hover{background:var(--v33-surface-3)!important;color:var(--v33-text-2)!important}
-body.reference-v31 .ux-save.saved{color:#b8c6ff!important;background:var(--v33-accent-soft)!important}
+body.reference-v31 .ux-save.saved{border-color:rgba(91,130,247,.4)!important;color:#b8c6ff!important;background:var(--v33-accent-soft)!important}
 
 /* Research canvases inherit the same neutral material palette. */
 body.reference-v31 .research-os-stage,
@@ -314,7 +324,7 @@ body.reference-v31.simple-settings-v29 #settingsDialog.settings-center{
   box-shadow:0 28px 80px rgba(0,0,0,.48)!important;
 }
 body.reference-v31 .simple-settings-v29-header{border-bottom-color:var(--v33-border)!important;background:var(--v33-surface)!important}
-body.reference-v31 .simple-settings-v29-header span{color:#9fb2ff!important}
+body.reference-v31 .simple-settings-v29-header>span{display:none!important}
 body.reference-v31 .simple-settings-v29-header p{color:var(--v33-muted)!important}
 body.reference-v31 .simple-settings-v29-content{background:var(--v33-surface)!important}
 body.reference-v31 .simple-ai-v28-field>span{color:var(--v33-text-2)!important}
