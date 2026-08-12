@@ -1,5 +1,6 @@
 (() => {
   const CROSSREF_API = 'https://api.crossref.org/works';
+  const CROSSREF_TIMEOUT_MS = 12000;
   const LOW_VALUE_TITLE = /^(index|subject index|author index|contents?|table of contents|front matter|back matter|preface|foreword|introduction|conclusion|references|bibliography|editorial(?:\b|:).*)$/i;
   const TYPE_WEIGHT = new Map([
     ['journal-article', 24],
@@ -12,6 +13,7 @@
   ]);
 
   state.paperBackend = 'crossref';
+  state.paperDegraded = false;
   state.__paperWriteSource = '';
 
   let paperStore = state.papers;
@@ -162,18 +164,43 @@
     url.searchParams.set('rows', String(rows));
     const year = Number(els.year.value);
     if (year >= 1900 && year <= 2100) url.searchParams.set('filter', `from-pub-date:${year}-01-01`);
-    const res = await fetch(url, {headers:{Accept:'application/json'}, cache:'no-store'});
-    if (!res.ok) throw new Error(`Crossref 请求失败 (${res.status})`);
-    return res.json();
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CROSSREF_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, {headers:{Accept:'application/json'}, cache:'no-store', signal:controller.signal});
+      if (!res.ok) throw new Error(`Crossref ${mode === 'title' ? '标题' : '综合'}请求失败 (${res.status})`);
+      return await res.json();
+    } catch (error) {
+      if (error?.name === 'AbortError') throw new Error(`Crossref ${mode === 'title' ? '标题' : '综合'}请求超时`);
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   async function searchCrossref(query) {
-    const [titleResponse, broadResponse] = await Promise.all([
+    // Crossref occasionally returns a browser/CORS failure on only one of the
+    // two query shapes. Treat title and bibliographic search as redundant paths:
+    // one healthy response is enough to produce useful paper results.
+    const settled = await Promise.allSettled([
       requestCrossref(query, 'title', 30),
       requestCrossref(query, 'bibliographic', 30)
     ]);
+    const responses = settled.filter(result => result.status === 'fulfilled').map(result => result.value);
+    const failures = settled
+      .filter(result => result.status === 'rejected')
+      .map(result => result.reason?.message || 'Crossref 请求失败');
 
-    const raw = [...(titleResponse.message?.items || []), ...(broadResponse.message?.items || [])];
+    if (!responses.length) {
+      const detail = [...new Set(failures)].join('；');
+      throw new Error(detail ? `论文数据源请求失败：${detail}` : '论文数据源请求失败');
+    }
+
+    state.paperDegraded = responses.length < settled.length;
+    if (state.paperDegraded) console.warn('Crossref 单路请求失败，已使用可用结果继续检索：', ...failures);
+
+    const raw = responses.flatMap(response => response.message?.items || []);
     const unique = new Map();
     for (const rawItem of raw) {
       const item = normalizeCrossref(rawItem);
@@ -198,6 +225,7 @@
       await searchCrossref(query);
     } catch (error) {
       state.paperBackend = 'crossref';
+      state.paperDegraded = false;
       writePaperState([], 0);
       state.paperBackend = 'crossref-error';
       throw new Error(error?.message || '论文数据源请求失败');
@@ -208,7 +236,10 @@
   updateCounts = function updateCountsWithPaperSource() {
     previousUpdateCounts();
     const label = document.querySelector('#paperSourceLabel');
-    if (label) label.textContent = state.paperBackend === 'crossref-error' ? '论文 · Crossref（异常）' : '论文 · Crossref';
+    if (!label) return;
+    if (state.paperBackend === 'crossref-error') label.textContent = '论文 · Crossref（异常）';
+    else if (state.paperDegraded) label.textContent = '论文 · Crossref（单路降级）';
+    else label.textContent = '论文 · Crossref';
   };
 
   if (state.query) setTimeout(() => performSearch(state.query), 0);
