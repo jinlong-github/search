@@ -15,6 +15,7 @@
     const footer=document.querySelector('footer');
     const hero=document.querySelector('.hero');
     const searchForm=document.querySelector('#searchForm');
+    const quickQueries=hero?.querySelector('.quick-queries');
     const workspace=document.querySelector('#searchWorkspace');
     const contentGrid=workspace?.querySelector('.content-grid');
     const filters=workspace?.querySelector('.filters');
@@ -71,7 +72,6 @@
     const searchSlot=document.createElement('div');
     searchSlot.className='v31-search-slot';
     topbar.insertBefore(searchSlot,topActions||null);
-    searchSlot.appendChild(searchForm);
 
     body.insertBefore(app,body.firstChild);
     app.append(sidebar,main);
@@ -120,19 +120,34 @@
       if(action==='export')document.querySelector('#exportBtn')?.click();
     });
 
+    const currentView=()=>body.dataset.researchOsView||'search';
+    const hasResults=()=>!workspace.classList.contains('hidden');
+
+    const syncSearchPlacement=()=>{
+      const homeMode=currentView()==='search'&&!hasResults();
+      body.classList.toggle('v32-home-mode',homeMode);
+      if(homeMode){
+        if(searchForm.parentElement!==hero)hero.insertBefore(searchForm,quickQueries||null);
+      }else if(searchForm.parentElement!==searchSlot){
+        searchSlot.appendChild(searchForm);
+      }
+    };
+
     const syncActiveView=()=>{
-      const view=body.dataset.researchOsView||'search';
+      const view=currentView();
       const inAnalysis=view!=='search';
       sidebar.classList.toggle('v32-analysis-open',inAnalysis);
       sidebar.querySelectorAll('[data-v31-view]').forEach(button=>{
         button.classList.toggle('active',button.dataset.v31View===view);
       });
       sidebar.querySelector('[data-v32-analysis-root]')?.classList.toggle('active',inAnalysis);
+      syncSearchPlacement();
     };
     new MutationObserver(syncActiveView).observe(body,{attributes:true,attributeFilter:['data-research-os-view']});
 
     const syncResultsState=()=>{
-      body.classList.toggle('v31-has-results',!workspace.classList.contains('hidden'));
+      body.classList.toggle('v31-has-results',hasResults());
+      syncSearchPlacement();
     };
     new MutationObserver(syncResultsState).observe(workspace,{attributes:true,attributeFilter:['class']});
 
