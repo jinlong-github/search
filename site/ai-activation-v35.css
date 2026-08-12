@@ -1,0 +1,30 @@
+/* v35: keep model config at three fields, expose the one-time system service prerequisite. */
+body.simple-ai-v28 .ai-v35-service{margin-top:13px;border:1px solid rgba(82,215,236,.11);border-radius:10px;background:rgba(3,15,23,.5);overflow:hidden}
+body.simple-ai-v28 .ai-v35-service-row{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 11px}
+body.simple-ai-v28 .ai-v35-service-row>div{min-width:0;display:flex;align-items:center;gap:9px}
+body.simple-ai-v28 .ai-v35-service-row span{color:#73949e;font-size:11px;font-weight:700}
+body.simple-ai-v28 .ai-v35-service-row strong{color:#b8d5dc;font-size:11px;font-weight:700}
+body.simple-ai-v28 .ai-v35-service-row strong[data-state="ok"]{color:#79dcb5}
+body.simple-ai-v28 .ai-v35-service-row strong[data-state="error"]{color:#ff91a7}
+body.simple-ai-v28 .ai-v35-service-row button{flex:none;border:1px solid rgba(78,215,236,.16);border-radius:7px;background:rgba(7,25,35,.68);color:#9fc4cc;min-height:30px;padding:0 10px;cursor:pointer;font-size:11px}
+body.simple-ai-v28 .ai-v35-service-detail{border-top:1px solid rgba(82,215,236,.09);padding:11px}
+body.simple-ai-v28 .ai-v35-service-detail label{display:grid;gap:7px}
+body.simple-ai-v28 .ai-v35-service-detail label>span{color:#8faeb6;font-size:11px;font-weight:700}
+body.simple-ai-v28 .ai-v35-service-detail input{width:100%;min-height:42px;border:1px solid rgba(82,215,236,.16);border-radius:9px;outline:0;background:rgba(2,11,18,.72);color:#ecfbff;padding:0 11px;font:500 12px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+body.simple-ai-v28 .ai-v35-service-detail input:focus{border-color:rgba(83,229,249,.48);box-shadow:0 0 0 3px rgba(65,231,255,.05)}
+body.simple-ai-v28 .ai-v35-service-actions{display:flex;gap:8px;margin-top:9px}
+body.simple-ai-v28 .ai-v35-service-actions button{min-height:32px;border:1px solid rgba(78,215,236,.16);border-radius:7px;background:rgba(7,25,35,.68);color:#9fc4cc;padding:0 11px;cursor:pointer;font-size:11px}
+body.simple-ai-v28 .ai-v35-service-detail p{min-height:17px;margin:8px 0 0;color:#71949f;font-size:10px;line-height:1.5}
+body.simple-ai-v28 .ai-v35-service-detail p[data-state="ok"]{color:#79dcb5}
+body.simple-ai-v28 .ai-v35-service-detail p[data-state="error"]{color:#ff91a7}
+body.simple-ai-v28 .ai-v35-service-detail p[data-state="loading"]{color:#9dc1c9}
+.ai-v35-runtime-status[data-state="error"]{color:#ff91a7!important}
+.ai-v35-runtime-status[data-state="loading"]{color:#9dc1c9!important}
+.ai-v35-runtime-status[data-state="idle"]{color:#71949f!important}
+
+@media(max-width:620px){
+  body.simple-ai-v28 .ai-v35-service-row{align-items:flex-start}
+  body.simple-ai-v28 .ai-v35-service-row>div{display:grid;gap:3px}
+  body.simple-ai-v28 .ai-v35-service-actions{display:grid;grid-template-columns:1fr 1fr}
+  body.simple-ai-v28 .ai-v35-service-actions button{width:100%}
+}
