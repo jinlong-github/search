@@ -20,10 +20,11 @@
     const contentGrid=workspace?.querySelector('.content-grid');
     const filters=workspace?.querySelector('.filters');
     const resultsPane=workspace?.querySelector('.results-pane');
+    const results=document.querySelector('#results');
     const topActions=topbar?.querySelector('.top-actions');
     if(!body||!topbar||!shell||!hero||!searchForm||!workspace||!contentGrid||!resultsPane)return;
 
-    body.classList.add('reference-v31','clarity-v32');
+    body.classList.add('reference-v31','clarity-v32','controls-v33');
 
     const originalBrand=topbar.querySelector('.brand');
     originalBrand?.classList.add('v31-original-brand');
@@ -31,11 +32,13 @@
     if(density)density.hidden=true;
     const settings=document.querySelector('#settingsBtn');
     if(settings)settings.textContent='AI 配置';
+    const searchButton=searchForm.querySelector('.search-btn');
+    if(searchButton)searchButton.textContent='搜索';
 
     const title=hero.querySelector('h1');
     const subtitle=hero.querySelector('.subtitle');
     if(title)title.textContent='研究搜索';
-    if(subtitle)subtitle.textContent='先找到可信资料，再进入地图、时间、实体与证据分析。';
+    if(subtitle)subtitle.textContent='先找到可信资料，再进入关系、时间、实体与证据分析。';
 
     const app=document.createElement('div');
     app.className='v31-app';
@@ -49,21 +52,21 @@
       </div>
       <div class="v31-nav-label">主要功能</div>
       <nav class="v31-nav v32-primary-nav" aria-label="主要功能">
-        <button class="active" type="button" data-v31-view="search"><span>⌕</span><b>检索</b></button>
-        <button type="button" data-v32-analysis-root><span>◫</span><b>研究分析</b><i>›</i></button>
+        <button class="active" type="button" data-v31-view="search"><b>搜索</b></button>
+        <button type="button" data-v32-analysis-root><b>分析工具</b></button>
       </nav>
-      <nav class="v32-analysis-nav" aria-label="研究分析视图">
-        <button type="button" data-v31-view="map">研究地图</button>
-        <button type="button" data-v31-view="timeline">时间演进</button>
-        <button type="button" data-v31-view="entities">实体情报</button>
-        <button type="button" data-v31-view="evidence">证据板</button>
-        <button type="button" data-v31-view="path">技术脉络</button>
+      <nav class="v32-analysis-nav" aria-label="分析工具">
+        <button type="button" data-v31-view="map">关系地图</button>
+        <button type="button" data-v31-view="timeline">时间趋势</button>
+        <button type="button" data-v31-view="entities">关键实体</button>
+        <button type="button" data-v31-view="evidence">证据</button>
+        <button type="button" data-v31-view="path">技术路径</button>
       </nav>
       <div class="v31-sidebar-spacer"></div>
       <nav class="v31-nav v31-nav-secondary" aria-label="辅助操作">
-        <button type="button" data-v31-action="history"><span>◴</span><b>历史</b></button>
-        <button type="button" data-v31-action="settings"><span>⚙</span><b>AI 配置</b></button>
-        <button type="button" data-v31-action="export"><span>⇩</span><b>导出</b></button>
+        <button type="button" data-v31-action="history"><b>搜索历史</b></button>
+        <button type="button" data-v31-action="settings"><b>AI 配置</b></button>
+        <button type="button" data-v31-action="export"><b>导出结果</b></button>
       </nav>`;
 
     const main=document.createElement('main');
@@ -151,8 +154,85 @@
     };
     new MutationObserver(syncResultsState).observe(workspace,{attributes:true,attributeFilter:['class']});
 
+    let normalizeQueued=false;
+    let normalizing=false;
+    const normalizeResultActions=()=>{
+      normalizeQueued=false;
+      if(normalizing||!results)return;
+      normalizing=true;
+      try{
+        results.querySelectorAll('.ux-result').forEach(card=>{
+          const save=card.querySelector('.ux-save');
+          if(save){
+            const saved=save.classList.contains('saved');
+            save.textContent=saved?'已收藏':'收藏';
+            save.setAttribute('aria-label',saved?'取消收藏':'收藏');
+          }
+
+          const actions=card.querySelector('.ux-actions');
+          if(!actions)return;
+
+          let main=actions.querySelector('.ux-open');
+          if(main){
+            main.textContent='打开来源 ↗';
+            if(main.parentElement!==actions)actions.prepend(main);
+          }
+
+          let project=actions.querySelector('.project-v20-add');
+          let details=actions.querySelector(':scope > .v33-more-actions');
+          if(project&&project.parentElement!==actions){
+            if(details)actions.insertBefore(project,details);
+            else actions.appendChild(project);
+          }
+
+          const extras=[...actions.children].filter(node=>node!==main&&node!==project&&node!==details);
+          if(extras.length){
+            if(!details){
+              details=document.createElement('details');
+              details.className='v33-more-actions';
+              const summary=document.createElement('summary');
+              summary.textContent='更多';
+              const menu=document.createElement('div');
+              menu.className='v33-more-actions-menu';
+              details.append(summary,menu);
+              actions.appendChild(details);
+            }
+            const menu=details.querySelector('.v33-more-actions-menu');
+            extras.forEach(node=>menu?.appendChild(node));
+          }
+
+          project=actions.querySelector('.project-v20-add');
+          if(project&&project.parentElement!==actions){
+            if(details)actions.insertBefore(project,details);
+            else actions.appendChild(project);
+          }
+
+          if(details&&!details.querySelector('.v33-more-actions-menu')?.children.length)details.remove();
+        });
+      }finally{
+        normalizing=false;
+      }
+    };
+    const queueNormalize=()=>{
+      if(normalizeQueued)return;
+      normalizeQueued=true;
+      requestAnimationFrame(normalizeResultActions);
+    };
+    if(results){
+      new MutationObserver(queueNormalize).observe(results,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+      results.addEventListener('click',()=>setTimeout(queueNormalize,0),true);
+      [0,100,350,900,1800].forEach(delay=>setTimeout(queueNormalize,delay));
+    }
+
+    const removeSettingsDecoration=()=>{
+      document.querySelectorAll('.simple-settings-v29-header span').forEach(node=>node.remove());
+    };
+    new MutationObserver(removeSettingsDecoration).observe(body,{childList:true,subtree:true});
+    removeSettingsDecoration();
+
     document.querySelectorAll('#researchOsRail,#researchOsStatusbar').forEach(node=>node.setAttribute('aria-hidden','true'));
     syncActiveView();
     syncResultsState();
+    queueNormalize();
   });
 })();
