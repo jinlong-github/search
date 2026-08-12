@@ -175,6 +175,27 @@ body.reference-v31 .research-controlbar{
 }
 body.reference-v31 .research-query-meta strong{color:var(--v33-text)!important}
 body.reference-v31 .research-query-meta>span:last-child{color:var(--v33-muted)!important}
+body.reference-v31 .research-live-scan{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--v33-muted)!important;
+  font-size:9.5px!important;
+  font-weight:520!important;
+  box-shadow:none!important;
+}
+body.reference-v31 .research-live-scan i{
+  width:5px!important;
+  height:5px!important;
+  border-radius:50%!important;
+  background:#65758a!important;
+  box-shadow:none!important;
+}
+body.reference-v31 .research-live-scan span{color:inherit!important}
 body.reference-v31 .research-sort-block select,
 body.reference-v31 .research-filter-toggle,
 body.reference-v31 .research-filter-clear{
@@ -324,7 +345,7 @@ body.reference-v31.simple-settings-v29 #settingsDialog.settings-center{
   box-shadow:0 28px 80px rgba(0,0,0,.48)!important;
 }
 body.reference-v31 .simple-settings-v29-header{border-bottom-color:var(--v33-border)!important;background:var(--v33-surface)!important}
-body.reference-v31 .simple-settings-v29-header>span{display:none!important}
+body.reference-v31 .simple-settings-v29-header>div>span{display:none!important}
 body.reference-v31 .simple-settings-v29-header p{color:var(--v33-muted)!important}
 body.reference-v31 .simple-settings-v29-content{background:var(--v33-surface)!important}
 body.reference-v31 .simple-ai-v28-field>span{color:var(--v33-text-2)!important}
