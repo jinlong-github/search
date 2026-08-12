@@ -54,7 +54,6 @@
     shell.innerHTML=`
       <div class="simple-settings-v29-header">
         <div>
-          <span>AI / CONFIG</span>
           <h2>AI 配置</h2>
           <p>只需要 URL、API、Name。其余参数由系统自动处理。</p>
         </div>
