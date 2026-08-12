@@ -33,12 +33,12 @@
   <link rel="stylesheet" href="./ai-provider-v21.css?v=21" />
   <link rel="stylesheet" href="./provider-profiles-v22.css?v=22" />
 
-  <!-- v31 is part of the initial document, not a post-load skin. These files are
-       deliberately last so one visual system owns the first paint. -->
+  <!-- Reference shell owns first paint; v32 is a clarity refactor of that shell,
+       not another post-load presentation layer. -->
   <link rel="stylesheet" href="./simple-ai-v28.css?v=28" />
   <link rel="stylesheet" href="./simple-settings-v29.css?v=29" />
-  <link rel="stylesheet" href="./reference-v31.css?v=31" />
-  <link rel="stylesheet" href="./reference-v31-correction.css?v=31.1" />
+  <link rel="stylesheet" href="./reference-v31.css?v=32" />
+  <link rel="stylesheet" href="./reference-v31-correction.css?v=32" />
   <link rel="stylesheet" href="./reference-v31-dialog-fit.css?v=31.2" />
 </head>
 <body class="reference-v31">
@@ -146,7 +146,7 @@
   <!-- Presentation scripts execute deterministically after the legacy business
        modules, but before DOMContentLoaded. No window-load race. -->
   <script src="./simple-ai-v28.js?v=28" defer></script>
-  <script src="./reference-v31.js?v=31" defer></script>
+  <script src="./reference-v31.js?v=32" defer></script>
   <script src="./simple-settings-v29.js?v=29" defer></script>
   <script src="./reference-v31-runtime-fix.js?v=31.3" defer></script>
 </body>
