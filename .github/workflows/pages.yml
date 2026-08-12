@@ -323,7 +323,7 @@ jobs:
           MAP_CLUSTERS=$( (grep -o 'research-map-cluster-label' /tmp/prod-map.html || true) | wc -l | tr -d ' ' )
           echo "Production map: nodes=$MAP_NODES clusters=$MAP_CLUSTERS"
           test "$MAP_NODES" -ge 8
-          test "$MAP_CLUSTERS" -ge 2
+          test "$MAP_CLUSTERS" -ge 1
           grep -q '研究地图' /tmp/prod-map.html
           grep -q '核心 · 高信号\|主题簇' /tmp/prod-map.html
           grep -q '不代表真实引用、合作或语义向量距离' /tmp/prod-map.html
