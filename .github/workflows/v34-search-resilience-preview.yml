@@ -1,0 +1,108 @@
+name: V34 Search Resilience Preview
+
+on:
+  push:
+    branches: [agent/search-resilience-v34]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  resilience:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser harness
+        run: npm install --no-save playwright-core@1.54.2
+      - name: Launch local site
+        run: |
+          python3 -m http.server 8000 -d site >/tmp/v34-http.log 2>&1 &
+          sleep 2
+      - name: Force Crossref failure paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          export CHROME
+          node <<'NODE'
+          const { chromium } = require('playwright-core');
+          const base = 'http://127.0.0.1:8000/';
+          const query = 'B-Rep reconstruction CAD';
+
+          async function waitDone(page) {
+            await page.locator('#queryInput').fill(query);
+            await page.locator('#searchForm .search-btn').click();
+            await page.waitForFunction(() => document.querySelector('#loading')?.classList.contains('hidden'), null, { timeout: 45000 });
+            await page.waitForTimeout(700);
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ executablePath: process.env.CHROME, headless: true });
+            try {
+              // Case 1: title-shaped Crossref call fails, bibliographic call remains healthy.
+              {
+                const page = await browser.newPage();
+                let abortedTitle = 0;
+                let allowedBroad = 0;
+                await page.route('https://api.crossref.org/works?**', async route => {
+                  const url = new URL(route.request().url());
+                  if (url.searchParams.has('query.title')) {
+                    abortedTitle++;
+                    await route.abort('failed');
+                  } else {
+                    allowedBroad++;
+                    await route.continue();
+                  }
+                });
+                await page.goto(`${base}?preview=v34-partial`, { waitUntil: 'domcontentloaded' });
+                await waitDone(page);
+                const state = await page.evaluate(() => ({
+                  errorVisible: !document.querySelector('#errorBox')?.classList.contains('hidden'),
+                  errorText: document.querySelector('#errorBox')?.textContent?.trim() || '',
+                  papers: document.querySelectorAll('[data-key^="paper:"]').length,
+                  resultCards: document.querySelectorAll('#results .ux-result,#results .result-card').length,
+                  sourceLabel: document.querySelector('#paperSourceLabel')?.textContent?.trim() || '',
+                  status: document.querySelector('#statusLine')?.textContent?.trim() || ''
+                }));
+                console.log('PARTIAL_FAILURE', JSON.stringify({ abortedTitle, allowedBroad, ...state }, null, 2));
+                if (abortedTitle < 1) throw new Error('title request was not intercepted');
+                if (allowedBroad < 1) throw new Error('bibliographic fallback was not attempted');
+                if (state.errorVisible) throw new Error(`partial failure leaked as fatal error: ${state.errorText}`);
+                if (state.papers < 1) throw new Error('partial Crossref failure produced no papers');
+                if (!state.sourceLabel.includes('单路降级')) throw new Error(`degraded source state missing: ${state.sourceLabel}`);
+                await page.close();
+              }
+
+              // Case 2: both Crossref paths fail. This should terminate cleanly and show a source-specific error.
+              {
+                const page = await browser.newPage();
+                let aborted = 0;
+                await page.route('https://api.crossref.org/works?**', async route => {
+                  aborted++;
+                  await route.abort('failed');
+                });
+                await page.goto(`${base}?preview=v34-total`, { waitUntil: 'domcontentloaded' });
+                await waitDone(page);
+                const state = await page.evaluate(() => ({
+                  errorVisible: !document.querySelector('#errorBox')?.classList.contains('hidden'),
+                  errorText: document.querySelector('#errorBox')?.textContent?.trim() || '',
+                  loadingHidden: document.querySelector('#loading')?.classList.contains('hidden') === true,
+                  sourceLabel: document.querySelector('#paperSourceLabel')?.textContent?.trim() || ''
+                }));
+                console.log('TOTAL_FAILURE', JSON.stringify({ aborted, ...state }, null, 2));
+                if (aborted < 2) throw new Error('both Crossref request paths were not attempted');
+                if (!state.loadingHidden) throw new Error('loading spinner did not terminate');
+                if (!state.errorVisible || !state.errorText.includes('论文数据源请求失败')) throw new Error(`missing source-specific fatal error: ${state.errorText}`);
+                if (!state.sourceLabel.includes('异常')) throw new Error(`fatal source state missing: ${state.sourceLabel}`);
+                await page.close();
+              }
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+      - name: Static cache-bust check
+        run: |
+          node --check site/sources.js
+          grep -q 'sources.js?v=34' site/index.html
