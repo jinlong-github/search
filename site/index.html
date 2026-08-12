@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#07111f" />
+  <meta name="theme-color" content="#0b1016" />
   <meta name="description" content="科研情报系统：论文、专利、技术文章与工程资料的一体化技术研究工作台" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.crossref.org https://api.openalex.org https://hn.algolia.com https://search.patentsview.org https://*.workers.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none';" />
   <title>科研情报系统 · 技术研究工作台</title>
@@ -33,13 +33,14 @@
   <link rel="stylesheet" href="./ai-provider-v21.css?v=21" />
   <link rel="stylesheet" href="./provider-profiles-v22.css?v=22" />
 
-  <!-- Reference shell owns first paint; v32 is a clarity refactor of that shell,
-       not another post-load presentation layer. -->
+  <!-- Reference shell owns first paint. v33 only normalizes controls and palette;
+       it does not add another product layer or change business behavior. -->
   <link rel="stylesheet" href="./simple-ai-v28.css?v=28" />
   <link rel="stylesheet" href="./simple-settings-v29.css?v=29" />
   <link rel="stylesheet" href="./reference-v31.css?v=32" />
   <link rel="stylesheet" href="./reference-v31-correction.css?v=32" />
   <link rel="stylesheet" href="./reference-v31-dialog-fit.css?v=31.2" />
+  <link rel="stylesheet" href="./controls-v33.css?v=33" />
 </head>
 <body class="reference-v31">
   <header class="topbar">
@@ -64,7 +65,7 @@
         <span class="search-icon" aria-hidden="true">⌕</span>
         <input id="queryInput" name="q" type="search" autocomplete="off" placeholder="输入技术问题、方法、作者、机构、专利或工程路径…" />
         <kbd>/</kbd>
-        <button class="search-btn" type="submit">开始研究</button>
+        <button class="search-btn" type="submit">搜索</button>
       </form>
       <div class="quick-queries" aria-label="快速搜索">
         <button type="button" data-query="B-Rep reconstruction CAD">B-Rep 三维重建</button>
@@ -146,7 +147,7 @@
   <!-- Presentation scripts execute deterministically after the legacy business
        modules, but before DOMContentLoaded. No window-load race. -->
   <script src="./simple-ai-v28.js?v=28" defer></script>
-  <script src="./reference-v31.js?v=32" defer></script>
+  <script src="./reference-v31.js?v=33" defer></script>
   <script src="./simple-settings-v29.js?v=29" defer></script>
   <script src="./reference-v31-runtime-fix.js?v=31.3" defer></script>
 </body>
