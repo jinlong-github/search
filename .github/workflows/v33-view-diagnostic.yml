@@ -30,6 +30,7 @@ jobs:
           sleep 2
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
           QUERY='engineering%20drawing%203D%20reconstruction'
+          failures=0
 
           dump() {
             local view="$1"
@@ -42,7 +43,16 @@ jobs:
               echo "PASS [$label] $pattern"
             else
               echo "MISSING [$label] $pattern"
-              return 1
+              failures=$((failures+1))
+            fi
+          }
+          minimum() {
+            local label="$1" value="$2" expected="$3"
+            if [ "$value" -ge "$expected" ]; then
+              echo "PASS [$label] $value >= $expected"
+            else
+              echo "MISSING [$label] $value < $expected"
+              failures=$((failures+1))
             fi
           }
 
@@ -50,24 +60,29 @@ jobs:
           MAP_NODES=$( (grep -o 'research-map-node' /tmp/map.html || true) | wc -l | tr -d ' ' )
           MAP_CLUSTERS=$( (grep -o 'research-map-cluster-label' /tmp/map.html || true) | wc -l | tr -d ' ' )
           echo "MAP nodes=$MAP_NODES clusters=$MAP_CLUSTERS"
+          minimum map-nodes "$MAP_NODES" 8
+          minimum map-clusters "$MAP_CLUSTERS" 2
           check /tmp/map.html map-title '研究地图'
           check /tmp/map.html map-disclaimer '不代表真实引用、合作或语义向量距离'
 
           dump timeline
           YEAR_COLS=$( (grep -o 'research-year-column' /tmp/timeline.html || true) | wc -l | tr -d ' ' )
           echo "TIMELINE year_cols=$YEAR_COLS"
-          test "$YEAR_COLS" -ge 3
+          minimum timeline-years "$YEAR_COLS" 3
           check /tmp/timeline.html timeline-title '时间演进'
+          check /tmp/timeline.html timeline-notes-class 'research-timeline-notes'
           check /tmp/timeline.html timeline-first '最早信号'
           check /tmp/timeline.html timeline-peak '密度峰值'
           check /tmp/timeline.html timeline-latest '最新信号'
+          echo '--- timeline note text ---'
+          grep -o -E '<div class="research-timeline-notes">.{0,2200}</div>' /tmp/timeline.html | sed 's/<[^>]*>/ | /g' | head -3 || true
 
           dump entities
           ENTITY_PANELS=$( (grep -o 'research-entity-panel' /tmp/entities.html || true) | wc -l | tr -d ' ' )
           ENTITY_ROWS=$( (grep -o 'research-entity-row' /tmp/entities.html || true) | wc -l | tr -d ' ' )
           echo "ENTITIES panels=$ENTITY_PANELS rows=$ENTITY_ROWS"
-          test "$ENTITY_PANELS" -ge 3
-          test "$ENTITY_ROWS" -ge 3
+          minimum entity-panels "$ENTITY_PANELS" 3
+          minimum entity-rows "$ENTITY_ROWS" 3
           check /tmp/entities.html entity-title '实体情报'
           check /tmp/entities.html entity-author '>作者<'
           check /tmp/entities.html entity-source '来源与域名'
@@ -75,10 +90,13 @@ jobs:
           dump path
           PATH_NODES=$( (grep -o 'research-path-node' /tmp/path.html || true) | wc -l | tr -d ' ' )
           echo "PATH nodes=$PATH_NODES"
-          test "$PATH_NODES" -ge 4
+          minimum path-nodes "$PATH_NODES" 4
           check /tmp/path.html path-query '检索问题'
           check /tmp/path.html path-research '学术研究'
           check /tmp/path.html path-ip '知识产权'
           check /tmp/path.html path-engineering '工程落地'
           check /tmp/path.html path-patent-warning '不能据此推断专利空白'
           check /tmp/path.html path-relation-warning '不代表引用、专利族、技术转让'
+
+          echo "TOTAL CONTRACT MISMATCHES=$failures"
+          test "$failures" -eq 0
