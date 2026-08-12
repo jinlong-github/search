@@ -1,0 +1,44 @@
+name: V33 Timeline Text
+
+on:
+  push:
+    branches: [agent/v33-release-ci-fix]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render timeline and print labels
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8000 -d site >/tmp/http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          sleep 2
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=34000 \
+            --dump-dom 'http://127.0.0.1:8000/?q=engineering%20drawing%203D%20reconstruction&view=timeline' >/tmp/timeline.html 2>/tmp/chrome.log
+          echo '--- classes ---'
+          echo "years=$( (grep -o 'research-year-column' /tmp/timeline.html || true) | wc -l | tr -d ' ' )"
+          echo "notes=$( (grep -o 'research-timeline-notes' /tmp/timeline.html || true) | wc -l | tr -d ' ' )"
+          echo '--- known labels ---'
+          for text in 'FIRST SIGNAL' 'PEAK DENSITY' 'LATEST SIGNAL' '最早信号' '密度峰值' '最新信号' '起始' '峰值' '最新'; do
+            if grep -q "$text" /tmp/timeline.html; then echo "FOUND: $text"; else echo "ABSENT: $text"; fi
+          done
+          echo '--- note block ---'
+          python3 - <<'PY'
+          import re
+          text=open('/tmp/timeline.html',encoding='utf-8').read()
+          m=re.search(r'<div class="research-timeline-notes">(.*?)</div>',text,re.S)
+          if m:
+              block=re.sub(r'<[^>]+>',' | ',m.group(1))
+              print(re.sub(r'\s+',' ',block)[:3000])
+          else:
+              print('NO TIMELINE NOTES BLOCK')
+          PY
