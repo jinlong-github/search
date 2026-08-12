@@ -112,7 +112,13 @@
   function schedule() {
     if (queued) return;
     queued = true;
-    requestAnimationFrame(() => { queued = false; localize(); });
+    /* Dynamic research views can render at the end of a headless/browser time
+       budget. Localize in the same event loop turn instead of waiting for a
+       requestAnimationFrame that may never be painted before serialization. */
+    queueMicrotask(() => {
+      queued = false;
+      localize();
+    });
   }
 
   localize();
