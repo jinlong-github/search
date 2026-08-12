@@ -224,6 +224,12 @@
       [0,100,350,900,1800].forEach(delay=>setTimeout(queueNormalize,delay));
     }
 
+    const removeSettingsDecoration=()=>{
+      document.querySelectorAll('.simple-settings-v29-header span').forEach(node=>node.remove());
+    };
+    new MutationObserver(removeSettingsDecoration).observe(body,{childList:true,subtree:true});
+    removeSettingsDecoration();
+
     document.querySelectorAll('#researchOsRail,#researchOsStatusbar').forEach(node=>node.setAttribute('aria-hidden','true'));
     syncActiveView();
     syncResultsState();
