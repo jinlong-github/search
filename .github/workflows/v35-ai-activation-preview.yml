@@ -1,0 +1,132 @@
+name: V35 AI Activation Preview
+
+on:
+  push:
+    branches: [agent/ai-activation-v35]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  activation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static checks
+        run: |
+          node --check site/ai-activation-v35.js
+          grep -q 'ai-activation-v35.css?v=35' site/index.html
+          grep -q 'ai-activation-v35.js?v=35' site/index.html
+          grep -q 'simple-ai-v28.js?v=35' site/index.html
+          grep -q 'ai-v18.js?v=35' site/index.html
+      - name: Install browser harness
+        run: npm install --no-save playwright-core@1.54.2
+      - name: Launch local site
+        run: |
+          python3 -m http.server 8000 -d site >/tmp/v35-http.log 2>&1 &
+          sleep 2
+      - name: Verify configured AI really fires
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          export CHROME
+          node <<'NODE'
+          const { chromium } = require('playwright-core');
+          const base='http://127.0.0.1:8000/';
+          const worker='https://research-search-api.test.workers.dev';
+          const simple={url:'https://api.example.test/v1',api:'test-key',name:'test-model'};
+          const crossref={message:{items:[{
+            DOI:'10.1000/v35',title:['CAD topology reconstruction from engineering drawings'],type:'journal-article',
+            URL:'https://doi.org/10.1000/v35','container-title':['Test Journal'],author:[{given:'Test',family:'Author'}],
+            published:{'date-parts':[[2026,8,12]]},'is-referenced-by-count':7,score:88
+          }]}};
+
+          async function installRoutes(page, counters){
+            await page.route('https://api.crossref.org/works?**', route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(crossref)}));
+            await page.route('https://hn.algolia.com/**', route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({hits:[],nbHits:0})}));
+            await page.route(`${worker}/**`, async route=>{
+              const req=route.request();
+              const path=new URL(req.url()).pathname;
+              if(path==='/api/status')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({service_version:'research-os-v28',capabilities:{simple_ai_config:true}})});
+              if(path==='/api/web')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({results:[],total:0})});
+              if(path==='/api/patents')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({patents:[],total_patent_count:0})});
+              if(path==='/api/ai/summaries'){
+                counters.calls++;
+                const body=JSON.parse(req.postData()||'{}');
+                counters.lastBody=body;
+                const key=body.items?.[0]?.key||'paper:crossref:test';
+                return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({provider:'Custom AI',model:body.ai?.name||'unknown',summaries:[{key,summary:'AI 已真实响应：该条目涉及工程图到 CAD 拓扑重建。'}],usage:{input_tokens:100,output_tokens:20,total_tokens:120}})});
+              }
+              return route.fulfill({status:404,contentType:'application/json',body:'{}'});
+            });
+          }
+
+          async function seed(page, withWorker){
+            await page.goto(base,{waitUntil:'domcontentloaded'});
+            await page.evaluate(({simple,worker,withWorker})=>{
+              localStorage.clear();
+              localStorage.setItem('research-search:simple-ai-v28',JSON.stringify(simple));
+              if(withWorker)localStorage.setItem('research-search:worker-url',worker);
+            },{simple,worker,withWorker});
+            await page.reload({waitUntil:'load'});
+          }
+
+          async function search(page){
+            await page.locator('#queryInput').fill('CAD topology reconstruction');
+            await page.locator('#searchForm .search-btn').click();
+          }
+
+          (async()=>{
+            const browser=await chromium.launch({executablePath:process.env.CHROME,headless:true});
+            try{
+              // Case 1: three model fields + Worker -> a title-only result must still trigger AI.
+              {
+                const page=await browser.newPage();
+                const counters={calls:0,lastBody:null};
+                await installRoutes(page,counters);
+                await seed(page,true);
+                await search(page);
+                const deadline=Date.now()+15000;
+                while(Date.now()<deadline&&counters.calls<1)await page.waitForTimeout(150);
+                if(counters.calls<1)throw new Error('configured AI never sent /api/ai/summaries');
+                await page.waitForTimeout(500);
+                const state=await page.evaluate(()=>({
+                  runtime:document.querySelector('[data-ai-runtime-status]')?.textContent?.trim()||'',
+                  summary:[...document.querySelectorAll('.ux-zh-summary p')].map(x=>x.textContent||'').find(x=>x.includes('AI 已真实响应'))||'',
+                  onlyWithSource:JSON.parse(localStorage.getItem('research-search:ai-settings-v1')||'{}').onlyWithSource,
+                  service:document.querySelector('[data-ai-v35-service-state]')?.textContent?.trim()||''
+                }));
+                console.log('CONNECTED',JSON.stringify({calls:counters.calls,body:counters.lastBody,state},null,2));
+                if(counters.lastBody?.ai?.name!=='test-model')throw new Error('simple AI config was not forwarded to Worker');
+                if(state.onlyWithSource!==false)throw new Error('title-only fallback was not enabled');
+                if(!state.summary)throw new Error('AI response did not reach result card');
+                if(!/已增强|Custom AI/.test(state.runtime))throw new Error(`AI success status missing: ${state.runtime}`);
+                if(!/已连接|可用/.test(state.service))throw new Error(`service state missing: ${state.service}`);
+                await page.close();
+              }
+
+              // Case 2: model configured but Worker missing -> never silent.
+              {
+                const page=await browser.newPage();
+                const counters={calls:0,lastBody:null};
+                await installRoutes(page,counters);
+                await seed(page,false);
+                await search(page);
+                await page.waitForTimeout(1200);
+                const state=await page.evaluate(()=>({
+                  runtime:document.querySelector('[data-ai-runtime-status]')?.textContent?.trim()||'',
+                  service:document.querySelector('[data-ai-v35-service-state]')?.textContent?.trim()||'',
+                  serviceDetailHidden:document.querySelector('[data-ai-v35-service-detail]')?.hidden
+                }));
+                console.log('MISSING_WORKER',JSON.stringify(state,null,2));
+                if(counters.calls!==0)throw new Error('AI request should not fire without Worker');
+                if(!state.runtime.includes('系统服务'))throw new Error(`missing explicit runtime prerequisite: ${state.runtime}`);
+                if(state.service!=='未连接')throw new Error(`missing service UI state: ${state.service}`);
+                if(state.serviceDetailHidden!==false)throw new Error('missing Worker editor should expand automatically');
+                await page.close();
+              }
+            }finally{await browser.close()}
+          })().catch(error=>{console.error(error);process.exit(1)});
+          NODE
